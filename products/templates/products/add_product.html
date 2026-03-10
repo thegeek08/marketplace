@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter un produit</title>
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            margin-top: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+        .card-header {
+            background: #007bff;
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .btn-primary {
+            background: #007bff;
+            border: none;
+            transition: 0.3s;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+        label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                Ajouter un produit
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_name">Nom du produit</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_price">Prix (en CFA)</label>
+                        {{ form.price }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_image">Image du produit</label>
+                        {{ form.image }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

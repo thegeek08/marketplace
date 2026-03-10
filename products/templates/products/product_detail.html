@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+
+<div class="row">
+    <div class="col-md-6">
+        {% if product.image %}
+            <img src="{{ product.image.url }}" class="img-fluid rounded shadow" alt="{{ product.name }}">
+        {% else %}
+            <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="height:350px;">
+                <span class="text-white fs-1">📦</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-6">
+        <h2>{{ product.name }}</h2>
+        {% if product.category %}
+            <small class="text-muted">{{ product.category.icon }} {{ product.category.name }}</small>
+        {% endif %}
+        <p class="text-muted mt-2">{{ product.description }}</p>
+        <h3 class="text-primary">{{ product.price }} CFA</h3>
+        <p><small class="text-muted">🛍️ Vendeur : {{ product.seller.nom }}</small></p>
+
+        <div class="mb-3">
+            {% if average %}
+                <span class="fs-4">{% for i in "12345" %}{% if forloop.counter <= average %}⭐{% else %}☆{% endif %}{% endfor %}</span>
+                <span class="text-muted">({{ average }}/5 — {{ count }} avis)</span>
+            {% else %}
+                <span class="text-muted">Aucune note pour le moment</span>
+            {% endif %}
+        </div>
+
+        {% if user.is_authenticated and user.role == 'client' %}
+            <form method="POST" action="{% url 'add_to_cart' product.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-dark btn-lg mb-2 w-100">🛒 Ajouter au panier</button>
+            </form>
+            <a href="{% url 'toggle_favorite' product.pk %}" class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-danger{% endif %} btn-lg mb-2 w-100">
+                {% if is_favorite %}❤️ Retirer des favoris{% else %}🤍 Ajouter aux favoris{% endif %}
+            </a>
+            {% if user != product.seller %}
+                <a href="{% url 'start_conversation' product.pk %}" class="btn btn-outline-dark btn-lg mb-3 w-100">💬 Contacter le vendeur</a>
+            {% endif %}
+        {% else %}
+            {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}" class="btn btn-dark btn-lg mb-3 w-100">🔐 Connectez-vous pour acheter</a>
+            {% endif %}
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            {% if user == product.seller or user.is_superuser %}
+                <div class="d-flex gap-2 mb-3">
+                    <a href="{% url 'edit_product' product.pk %}" class="btn btn-outline-primary">✏️ Modifier</a>
+                    <a href="{% url 'delete_product' product.pk %}" class="btn btn-outline-danger">🗑️ Supprimer</a>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {% if user.is_authenticated and user.role == 'client' %}
+            {% if user_rating %}
+                <div class="alert alert-success">✅ Vous avez déjà noté ce produit {{ user_rating.score }}/5</div>
+            {% elif form %}
+                <div class="card p-3 mt-3">
+                    <h5>⭐ Laisser une note</h5>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label">Note</label><br>
+                            {% for radio in form.score %}
+                                <div class="form-check form-check-inline">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label">{{ radio.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-2">{{ form.commentaire }}</div>
+                        <button type="submit" class="btn btn-dark">Envoyer</button>
+                    </form>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<hr class="mt-5">
+<h4>💬 Avis clients ({{ count }})</h4>
+{% for rating in ratings %}
+    <div class="card mb-3 p-3">
+        <div class="d-flex justify-content-between">
+            <strong>👤 {{ rating.client.nom }}</strong>
+            <span>{% for i in "12345" %}{% if forloop.counter <= rating.score %}⭐{% else %}☆{% endif %}{% endfor %}</span>
+        </div>
+        {% if rating.commentaire %}<p class="mt-2 mb-0">{{ rating.commentaire }}</p>{% endif %}
+        <small class="text-muted">{{ rating.created_at|date:"d/m/Y" }}</small>
+    </div>
+{% empty %}
+    <p class="text-muted">Aucun avis pour le moment.</p>
+{% endfor %}
+
+<div class="mt-3">
+    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">← Retour aux produits</a>
+</div>
+
+{% endblock %}

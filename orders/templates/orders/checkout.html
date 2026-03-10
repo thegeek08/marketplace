@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Passer la commande{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Formulaire -->
+    <div class="col-md-7">
+        <h2>📦 Passer la commande</h2>
+        <hr>
+        <form method="POST">
+            {% csrf_token %}
+
+            <!-- Adresse livraison -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">📍 Adresse de livraison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Adresse complète</label>
+                        <textarea name="adresse_livraison" class="form-control"
+                                  rows="3" placeholder="Quartier, rue, numéro..."
+                                  required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone</label>
+                        <input type="text" name="telephone" class="form-control"
+                               placeholder="7X XXX XX XX" required
+                               value="{{ user.phone }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mode de paiement -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">💳 Mode de paiement</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio"
+                               name="payment_method" value="livraison"
+                               id="livraison" checked>
+                        <label class="form-check-label" for="livraison">
+                            📦 Paiement à la livraison
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio"
+                               name="payment_method" value="wave"
+                               id="wave">
+                        <label class="form-check-label" for="wave">
+                            📱 Wave
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio"
+                               name="payment_method" value="orange_money"
+                               id="orange_money">
+                        <label class="form-check-label" for="orange_money">
+                            📱 Orange Money
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio"
+                               name="payment_method" value="stripe"
+                               id="stripe">
+                        <label class="form-check-label" for="stripe">
+                            💳 Carte bancaire (Stripe)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-dark btn-lg w-100">
+                ✅ Confirmer la commande
+            </button>
+        </form>
+    </div>
+
+    <!-- Résumé -->
+    <div class="col-md-5">
+        <div class="card shadow sticky-top" style="top:80px;">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">📋 Résumé de la commande</h5>
+            </div>
+            <div class="card-body">
+                {% for item in cart.items.all %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                        <span>{{ item.subtotal }} CFA</span>
+                    </div>
+                {% endfor %}
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <strong>Total</strong>
+                    <strong class="text-primary fs-5">{{ cart.total }} CFA</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Commande #{{ order.pk }} — Vendeur{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-9">
+
+    <!-- En-tête -->
+    <div class="card shadow mb-4">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📦 Commande #{{ order.pk }}</h5>
+        <span class="badge fs-6
+          {% if order.status == 'en_attente' %}bg-warning text-dark
+          {% elif order.status == 'confirmee' %}bg-info
+          {% elif order.status == 'en_livraison' %}bg-primary
+          {% elif order.status == 'livree' %}bg-success
+          {% elif order.status == 'annulee' %}bg-danger
+          {% endif %}">
+          {{ order.get_status_display }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>👤 Client :</strong> {{ order.client.nom|default:order.client.phone }}</p>
+            <p><strong>📱 Téléphone :</strong> {{ order.telephone }}</p>
+            <p><strong>📍 Adresse :</strong> {{ order.adresse_livraison }}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>💳 Paiement :</strong> {{ order.get_payment_method_display }}</p>
+            <p><strong>📅 Date :</strong> {{ order.created_at|date:"d/m/Y H:i" }}</p>
+            <p><strong>💰 Total :</strong> <span class="text-primary fw-bold">{{ order.total }} CFA</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    {% if order.status != 'annulee' %}
+    <div class="card shadow mb-4">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">🗺️ Avancement</h5>
+      </div>
+      <div class="card-body py-4">
+        <div class="d-flex justify-content-between align-items-start position-relative">
+          <div class="position-absolute w-100 d-flex align-items-center" style="top: 20px; z-index:0; padding: 0 40px;">
+            <div class="w-100 bg-light" style="height:4px; border-radius:2px;">
+              <div class="bg-success" style="height:4px; border-radius:2px; width:
+                {% if order.status == 'en_attente' %}0%
+                {% elif order.status == 'confirmee' %}33%
+                {% elif order.status == 'en_livraison' %}66%
+                {% elif order.status == 'livree' %}100%
+                {% endif %};"></div>
+            </div>
+          </div>
+          {% for step in status_steps %}
+          <div class="text-center flex-fill position-relative" style="z-index:1;">
+            <div class="d-flex justify-content-center mb-2">
+              <div class="rounded-circle d-flex align-items-center justify-content-center"
+                   style="width:40px; height:40px; border: 3px solid
+                     {% if step == 'en_attente' and order.status in 'en_attente,confirmee,en_livraison,livree' %}#198754
+                     {% elif step == 'confirmee' and order.status in 'confirmee,en_livraison,livree' %}#198754
+                     {% elif step == 'en_livraison' and order.status in 'en_livraison,livree' %}#198754
+                     {% elif step == 'livree' and order.status == 'livree' %}#198754
+                     {% else %}#dee2e6{% endif %};
+                   background:
+                     {% if step == 'en_attente' and order.status in 'en_attente,confirmee,en_livraison,livree' %}#198754
+                     {% elif step == 'confirmee' and order.status in 'confirmee,en_livraison,livree' %}#198754
+                     {% elif step == 'en_livraison' and order.status in 'en_livraison,livree' %}#198754
+                     {% elif step == 'livree' and order.status == 'livree' %}#198754
+                     {% elif step == order.status %}#0d6efd
+                     {% else %}#fff{% endif %};">
+                <span class="fs-5">
+                  {% if step == 'en_attente' %}⏳
+                  {% elif step == 'confirmee' %}✅
+                  {% elif step == 'en_livraison' %}🚚
+                  {% elif step == 'livree' %}🎉
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+            <small class="fw-semibold
+              {% if step == order.status %}text-primary
+              {% elif step == 'en_attente' and order.status in 'confirmee,en_livraison,livree' %}text-success
+              {% elif step == 'confirmee' and order.status in 'en_livraison,livree' %}text-success
+              {% elif step == 'en_livraison' and order.status == 'livree' %}text-success
+              {% else %}text-muted{% endif %}">
+              {% if step == 'en_attente' %}En attente
+              {% elif step == 'confirmee' %}Confirmée
+              {% elif step == 'en_livraison' %}En livraison
+              {% elif step == 'livree' %}Livrée
+              {% endif %}
+            </small>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Changer le statut -->
+    {% if order.status != 'livree' and order.status != 'annulee' %}
+    <div class="card shadow mb-4 border-primary">
+      <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">🔄 Changer le statut</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{% url 'update_order_status' order.pk %}">
+          {% csrf_token %}
+          <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Nouveau statut</label>
+              <select name="status" class="form-select">
+                {% for value, label in status_choices %}
+                  {% if value != order.status %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Note (optionnel)</label>
+              <input type="text" name="note" class="form-control" placeholder="Ex : colis parti de Dakar">
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary w-100">Valider</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Produits de cette commande -->
+    <div class="card shadow mb-4">
+      <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">🛒 Produits commandés</h6>
+      </div>
+      <div class="card-body">
+        {% for item in order.items.all %}
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-3">
+              {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" style="width:55px;height:55px;object-fit:cover;" class="rounded">
+              {% endif %}
+              <div>
+                <strong>{{ item.product.name }}</strong><br>
+                <small class="text-muted">{{ item.price }} CFA × {{ item.quantity }}</small>
+              </div>
+            </div>
+            <strong class="text-primary">{{ item.subtotal }} CFA</strong>
+          </div>
+        {% endfor %}
+        <hr>
+        <div class="d-flex justify-content-between">
+          <strong>Total</strong>
+          <strong class="text-primary fs-5">{{ order.total }} CFA</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique -->
+    {% if history %}
+    <div class="card shadow mb-4">
+      <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">📋 Historique</h6>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for h in history %}
+        <li class="list-group-item d-flex justify-content-between">
+          <div>
+            <span class="badge
+              {% if h.status == 'en_attente' %}bg-warning text-dark
+              {% elif h.status == 'confirmee' %}bg-info
+              {% elif h.status == 'en_livraison' %}bg-primary
+              {% elif h.status == 'livree' %}bg-success
+              {% elif h.status == 'annulee' %}bg-danger
+              {% endif %} me-2">{{ h.get_status_display }}</span>
+            {% if h.note %}<small class="text-muted">{{ h.note }}</small>{% endif %}
+          </div>
+          <small class="text-muted">{{ h.created_at|date:"d/m/Y H:i" }}</small>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'vendor_order_list' %}" class="btn btn-outline-secondary">← Toutes les commandes</a>
+
+  </div>
+</div>
+{% endblock %}
