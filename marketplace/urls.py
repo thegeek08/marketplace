@@ -5,6 +5,20 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from products import views as product_views
 
+
+class NoCacheTemplateView(TemplateView):
+    """TemplateView avec Cache-Control: no-cache, no-store pour le Service Worker.
+    Indispensable pour que le navigateur détecte immédiatement les mises à jour
+    du SW sans attendre l'expiration du cache HTTP (qui peut durer 24h par défaut).
+    """
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+
 urlpatterns = [
     path('', product_views.home, name='home'),
     path('gestion-secure-panel/', admin.site.urls),  # URL non prévisible pour l'admin
@@ -16,8 +30,8 @@ urlpatterns = [
     path('messaging/', include('messaging.urls')),
     path('favorites/', include('favorites.urls')),
     path('notifications/', include('notifications.urls')),
-    # PWA
-    path('sw.js', TemplateView.as_view(
+    # PWA — sw.js servi sans cache HTTP pour détecter les mises à jour immédiatement
+    path('sw.js', NoCacheTemplateView.as_view(
         template_name='pwa/sw.js',
         content_type='application/javascript',
         extra_context={'app_version': settings.APP_VERSION},

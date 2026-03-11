@@ -290,10 +290,15 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        /* updateViaCache: 'none' → le navigateur récupère toujours /sw.js
+           depuis le serveur (ignore le cache HTTP) pour détecter les mises à jour */
+        swRegistration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        });
 
-        /* Vérifier les mises à jour toutes les 60 secondes */
-        setInterval(() => swRegistration.update(), 60000);
+        /* Vérifier les mises à jour toutes les 30 secondes */
+        setInterval(() => swRegistration.update(), 30000);
 
         /* Détecter un nouveau SW en attente (waiting) */
         swRegistration.addEventListener('updatefound', () => {
