@@ -201,7 +201,8 @@ def login_view(request):
 
             if user is not None:
                 # Connexion réussie → réinitialiser les compteurs
-                reset_attempts(ip, phone, role)
+                # Utiliser le vrai rôle du compte trouvé (peut différer du rôle sélectionné)
+                reset_attempts(ip, phone, user.role)
 
                 if not user.phone_verified and twilio_configured():
                     request.session['pending_user_id'] = user.pk
@@ -219,9 +220,9 @@ def login_view(request):
                 login(request, user, backend='users.backends.PhoneRoleBackend')
                 audit_logger.info(
                     'LOGIN_SUCCESS | user_id=%d phone=%s role=%s ip=%s',
-                    user.pk, phone, role, ip
+                    user.pk, phone, user.role, ip
                 )
-                messages.success(request, "Connexion réussie !")
+                messages.success(request, f"Connexion réussie en tant que {user.get_role_display()} !")
                 if not user.profile_completed:
                     return redirect("complete_profile")
                 return redirect("dashboard")
@@ -237,7 +238,7 @@ def login_view(request):
                 if remaining > 0:
                     messages.error(
                         request,
-                        f"Téléphone, rôle ou mot de passe incorrect. "
+                        f"Numéro de téléphone ou mot de passe incorrect. "
                         f"({remaining} tentative(s) restante(s) avant blocage)"
                     )
                 else:
