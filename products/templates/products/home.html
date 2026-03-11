@@ -17,15 +17,22 @@
     <h1 class="fw-bold" style="font-size: clamp(1.5rem, 5vw, 2.8rem);">🛒 Bienvenue sur Marketplace</h1>
     <p class="mb-4" style="font-size: clamp(.95rem, 3vw, 1.2rem);">Achetez et vendez facilement — livraison partout au Sénégal</p>
     <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
-      <a href="{% url 'product_list' %}" class="btn btn-light btn-lg px-4">🔍 Voir les produits</a>
-      {% if not user.is_authenticated %}
+      {% if user.is_authenticated %}
+        <a href="{% url 'product_list' %}" class="btn btn-light btn-lg px-4">🔍 Voir les produits</a>
+        {% if user.role == 'vendeur' %}
+          <a href="{% url 'add_product' %}" class="btn btn-outline-light btn-lg px-4">+ Ajouter un produit</a>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-light btn-lg px-4">🔐 Se connecter</a>
         <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg px-4">📝 S'inscrire gratuitement</a>
-      {% elif user.role == 'vendeur' %}
-        <a href="{% url 'add_product' %}" class="btn btn-outline-light btn-lg px-4">+ Ajouter un produit</a>
       {% endif %}
     </div>
   </div>
 </div>
+
+{% if not user.is_authenticated %}
+<!-- Visiteur non connecté : on s'arrête après le hero -->
+{% else %}
 
 <!-- ── Catégories ── -->
 <div class="mb-4">
@@ -140,5 +147,7 @@
     </div>
   </div>
 </div>
+
+{% endif %}{# fin du bloc réservé aux connectés #}
 
 {% endblock %}

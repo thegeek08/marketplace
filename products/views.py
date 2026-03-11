@@ -16,6 +16,7 @@ def home(request):
     })
 
 
+@login_required
 def product_list(request):
     query = request.GET.get('q', '')
     category_id = request.GET.get('category', '')
@@ -38,6 +39,7 @@ def product_list(request):
     })
 
 
+@login_required
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
     ratings = product.ratings.all()
