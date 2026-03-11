@@ -199,6 +199,19 @@ def login_view(request):
 
             user = authenticate(request, phone=phone, password=password, role=role)
 
+            # Diagnostic : compte existant mais mot de passe inutilisable
+            if user is None:
+                from django.contrib.auth import get_user_model
+                _User = get_user_model()
+                _accounts = _User.objects.filter(phone=phone)
+                if _accounts.exists() and all(not u.has_usable_password() for u in _accounts):
+                    messages.error(
+                        request,
+                        "Ce compte n'a pas de mot de passe défini. "
+                        "Utilisez « Mot de passe oublié » pour en créer un."
+                    )
+                    return render(request, "users/login.html", {"form": form})
+
             if user is not None:
                 # Connexion réussie → réinitialiser les compteurs
                 # Utiliser le vrai rôle du compte trouvé (peut différer du rôle sélectionné)
