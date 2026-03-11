@@ -6,7 +6,7 @@ from django.db.models import Sum
 
 from .forms import RegisterForm, LoginForm, VerifyCodeForm, ProfileForm, ChangePasswordForm
 from .models import PhoneVerification
-from .sms import send_verification_sms
+from .sms import send_verification_sms, twilio_configured
 
 
 # ──────────────────────────────────────────────────────────
@@ -17,36 +17,33 @@ def register(request):
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
-            # Créer l'utilisateur inactif (en attente de vérification SMS)
             user = form.save(commit=False)
-            user.is_active = False
-            user.phone_verified = False
-            user.save()
 
-            # Générer et enregistrer le code de vérification
-            code = PhoneVerification.generate_code()
-            PhoneVerification.objects.create(user=user, code=code)
+            if twilio_configured():
+                # ── Mode SMS actif : compte inactif jusqu'à vérification ──
+                user.is_active = False
+                user.phone_verified = False
+                user.save()
 
-            # Envoyer le SMS
-            sms_sent = send_verification_sms(user.phone, code)
+                code = PhoneVerification.generate_code()
+                PhoneVerification.objects.create(user=user, code=code)
+                send_verification_sms(user.phone, code)
 
-            # Stocker l'id du compte en attente dans la session
-            request.session['pending_user_id'] = user.pk
-
-            if sms_sent:
+                request.session['pending_user_id'] = user.pk
                 messages.info(
                     request,
                     f"Un code de vérification a été envoyé au {user.phone}. "
                     "Entrez-le ci-dessous pour activer votre compte."
                 )
+                return redirect("verify_phone")
             else:
-                messages.warning(
-                    request,
-                    "SMS non envoyé (mode développement). "
-                    "Consultez la console pour obtenir votre code."
-                )
-
-            return redirect("verify_phone")
+                # ── Mode sans SMS : compte activé directement ──
+                user.is_active = True
+                user.phone_verified = False  # sera True quand Twilio activé
+                user.save()
+                login(request, user, backend='users.backends.PhoneRoleBackend')
+                messages.success(request, f"Bienvenue {user.nom or user.phone} ! Compte créé avec succès.")
+                return redirect("dashboard")
     else:
         form = RegisterForm()
     return render(request, "users/register.html", {"form": form})
@@ -159,11 +156,11 @@ def login_view(request):
             role = form.cleaned_data['role']
             user = authenticate(request, phone=phone, password=password, role=role)
             if user is not None:
-                if not user.phone_verified:
-                    # Compte non vérifié → renvoyer vers vérification
+                if not user.phone_verified and twilio_configured():
+                    # Compte non vérifié et Twilio actif → renvoyer vers vérification
                     request.session['pending_user_id'] = user.pk
-                    code = PhoneVerification.generate_code()
                     PhoneVerification.objects.filter(user=user, is_used=False).update(is_used=True)
+                    code = PhoneVerification.generate_code()
                     PhoneVerification.objects.create(user=user, code=code)
                     send_verification_sms(user.phone, code)
                     messages.warning(
