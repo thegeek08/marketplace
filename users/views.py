@@ -216,7 +216,7 @@ def login_view(request):
                     )
                     return redirect("verify_phone")
 
-                login(request, user)
+                login(request, user, backend='users.backends.PhoneRoleBackend')
                 audit_logger.info(
                     'LOGIN_SUCCESS | user_id=%d phone=%s role=%s ip=%s',
                     user.pk, phone, role, ip

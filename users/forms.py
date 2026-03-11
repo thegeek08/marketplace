@@ -58,11 +58,13 @@ class RegisterForm(forms.ModelForm):
 
     def clean_phone(self):
         phone = self.cleaned_data.get('phone', '').strip()
+        # Normaliser : supprimer espaces et tirets internes, garder + initial
+        normalized = phone[0] + phone[1:].replace(' ', '').replace('-', '') if phone else phone
         if not _PHONE_RE.match(phone):
             raise forms.ValidationError(
                 "Numéro de téléphone invalide. Utilisez le format +221771234567 ou 0033612345678."
             )
-        return phone
+        return normalized
 
     def clean(self):
         cleaned_data = super().clean()
@@ -105,6 +107,15 @@ class LoginForm(forms.Form):
             'placeholder': 'Numéro de téléphone'
         })
     )
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone', '').strip()
+        if not phone:
+            raise forms.ValidationError("Le numéro de téléphone est obligatoire.")
+        # Normaliser exactement comme à l'inscription
+        normalized = phone[0] + phone[1:].replace(' ', '').replace('-', '') if phone else phone
+        return normalized
+
     role = forms.ChoiceField(
         label="Je me connecte en tant que",
         choices=[('client', 'Client'), ('vendeur', 'Vendeur')],
