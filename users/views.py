@@ -1,18 +1,32 @@
+import logging
+
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Sum
+from django_ratelimit.decorators import ratelimit
 
-from .forms import RegisterForm, LoginForm, VerifyCodeForm, CompleteProfileForm, ProfileForm, ChangePasswordForm
+from .forms import RegisterForm, LoginForm, VerifyCodeForm, CompleteProfileForm, ProfileForm, ChangePasswordForm, DeleteAccountForm
 from .models import PhoneVerification
 from .sms import send_verification_sms, twilio_configured
+from .security import (
+    is_locked_ip, is_locked_phone, record_failed_attempt,
+    reset_attempts, get_client_ip, remaining_lockout, LOCKOUT_SECS,
+)
+
+security_logger = logging.getLogger('security')
+audit_logger    = logging.getLogger('audit')
 
 
 # ──────────────────────────────────────────────────────────
 # INSCRIPTION avec vérification SMS
 # ──────────────────────────────────────────────────────────
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def register(request):
     if request.method == "POST":
         form = RegisterForm(request.POST)
@@ -35,6 +49,10 @@ def register(request):
                     f"Un code de vérification a été envoyé au {user.phone}. "
                     "Entrez-le ci-dessous pour activer votre compte."
                 )
+                audit_logger.info(
+                    'REGISTER | phone=%s role=%s ip=%s',
+                    user.phone, user.role, get_client_ip(request)
+                )
                 return redirect("verify_phone")
             else:
                 # ── Mode sans SMS : compte activé directement ──
@@ -42,6 +60,10 @@ def register(request):
                 user.phone_verified = False  # sera True quand Twilio activé
                 user.save()
                 login(request, user, backend='users.backends.PhoneRoleBackend')
+                audit_logger.info(
+                    'REGISTER | phone=%s role=%s ip=%s',
+                    user.phone, user.role, get_client_ip(request)
+                )
                 messages.success(request, "Compte créé ! Complétez votre profil pour continuer.")
                 return redirect("complete_profile")
     else:
@@ -53,6 +75,7 @@ def register(request):
 # VÉRIFICATION SMS
 # ──────────────────────────────────────────────────────────
 
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def verify_phone(request):
     pending_id = request.session.get('pending_user_id')
     if not pending_id:
@@ -114,6 +137,7 @@ def verify_phone(request):
     return render(request, "users/verify.html", {"form": form, "phone": user.phone})
 
 
+@ratelimit(key='ip', rate='3/h', method='ALL', block=True)
 def resend_verification(request):
     """Renvoie un nouveau code SMS."""
     pending_id = request.session.get('pending_user_id')
@@ -147,17 +171,39 @@ def resend_verification(request):
 # CONNEXION
 # ──────────────────────────────────────────────────────────
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def login_view(request):
+    ip = get_client_ip(request)
+
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             phone = form.cleaned_data['phone']
             password = form.cleaned_data['password']
             role = form.cleaned_data['role']
+
+            # ── Vérification blocage brute force ──────────────────────────
+            if is_locked_ip(ip) or is_locked_phone(phone, role):
+                ttl = remaining_lockout(ip, phone, role)
+                minutes = max(1, ttl // 60)
+                security_logger.warning(
+                    'LOGIN_BLOCKED | phone=%s role=%s ip=%s ttl=%ds',
+                    phone, role, ip, ttl
+                )
+                messages.error(
+                    request,
+                    f"Trop de tentatives échouées. Compte temporairement bloqué. "
+                    f"Réessayez dans {minutes} minute(s)."
+                )
+                return render(request, "users/login.html", {"form": form})
+
             user = authenticate(request, phone=phone, password=password, role=role)
+
             if user is not None:
+                # Connexion réussie → réinitialiser les compteurs
+                reset_attempts(ip, phone, role)
+
                 if not user.phone_verified and twilio_configured():
-                    # Compte non vérifié et Twilio actif → renvoyer vers vérification
                     request.session['pending_user_id'] = user.pk
                     PhoneVerification.objects.filter(user=user, is_used=False).update(is_used=True)
                     code = PhoneVerification.generate_code()
@@ -169,13 +215,37 @@ def login_view(request):
                         "Un nouveau code a été envoyé."
                     )
                     return redirect("verify_phone")
+
                 login(request, user)
+                audit_logger.info(
+                    'LOGIN_SUCCESS | user_id=%d phone=%s role=%s ip=%s',
+                    user.pk, phone, role, ip
+                )
                 messages.success(request, "Connexion réussie !")
                 if not user.profile_completed:
                     return redirect("complete_profile")
                 return redirect("dashboard")
+
             else:
-                messages.error(request, "Téléphone, rôle ou mot de passe incorrect.")
+                # Échec → enregistrer la tentative
+                count = record_failed_attempt(ip, phone, role)
+                remaining = max(0, 5 - count)
+                security_logger.warning(
+                    'LOGIN_FAILED | phone=%s role=%s ip=%s attempts=%d',
+                    phone, role, ip, count
+                )
+                if remaining > 0:
+                    messages.error(
+                        request,
+                        f"Téléphone, rôle ou mot de passe incorrect. "
+                        f"({remaining} tentative(s) restante(s) avant blocage)"
+                    )
+                else:
+                    messages.error(
+                        request,
+                        "Compte bloqué après trop d'échecs. "
+                        f"Réessayez dans {LOCKOUT_SECS // 60} minutes."
+                    )
     else:
         form = LoginForm()
     return render(request, "users/login.html", {"form": form})
@@ -185,6 +255,7 @@ def login_view(request):
 # DÉCONNEXION
 # ──────────────────────────────────────────────────────────
 
+@require_POST
 def logout_view(request):
     logout(request)
     messages.info(request, "Vous êtes déconnecté")
@@ -288,6 +359,7 @@ def dashboard(request):
 def profile(request):
     profile_form = ProfileForm(instance=request.user)
     password_form = ChangePasswordForm()
+    delete_form = DeleteAccountForm()
 
     if request.method == "POST":
         action = request.POST.get('action')
@@ -305,25 +377,36 @@ def profile(request):
             password_form = ChangePasswordForm(request.POST)
             if password_form.is_valid():
                 old_password = password_form.cleaned_data['old_password']
+                new_password = password_form.cleaned_data['new_password1']
                 if request.user.check_password(old_password):
-                    request.user.set_password(
-                        password_form.cleaned_data['new_password1']
-                    )
-                    request.user.save()
-                    update_session_auth_hash(request, request.user)
-                    messages.success(request, "Mot de passe changé avec succès !")
-                    return redirect("profile")
+                    try:
+                        validate_password(new_password, request.user)
+                    except ValidationError as e:
+                        for error in e.messages:
+                            messages.error(request, error)
+                    else:
+                        request.user.set_password(new_password)
+                        request.user.save()
+                        update_session_auth_hash(request, request.user)
+                        messages.success(request, "Mot de passe changé avec succès !")
+                        return redirect("profile")
                 else:
                     messages.error(request, "Ancien mot de passe incorrect")
 
         elif action == 'delete_account':
-            request.user.delete()
-            logout(request)
-            messages.info(request, "Votre compte a été supprimé")
-            return redirect("register")
+            delete_form = DeleteAccountForm(request.POST)
+            if delete_form.is_valid():
+                if request.user.check_password(delete_form.cleaned_data['password']):
+                    request.user.delete()
+                    logout(request)
+                    messages.info(request, "Votre compte a été supprimé")
+                    return redirect("register")
+                else:
+                    messages.error(request, "Mot de passe incorrect. Suppression annulée.")
 
     context = {
         'profile_form': profile_form,
         'password_form': password_form,
+        'delete_form': delete_form,
     }
     return render(request, "users/profile.html", context)

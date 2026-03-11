@@ -1,8 +1,12 @@
+import logging
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from cart.models import Cart
 from .models import Order, OrderItem, OrderStatusHistory
+
+audit_logger = logging.getLogger('audit')
 
 
 # ──────────────────────────────────────────────
@@ -18,12 +22,18 @@ def checkout(request):
         return redirect('cart_detail')
 
     if request.method == "POST":
-        adresse = request.POST.get('adresse_livraison')
-        telephone = request.POST.get('telephone')
+        adresse = request.POST.get('adresse_livraison', '').strip()
+        telephone = request.POST.get('telephone', '').strip()
         payment_method = request.POST.get('payment_method')
+
+        valid_payment_methods = {key for key, _ in Order.PAYMENT_CHOICES}
 
         if not adresse or not telephone:
             messages.error(request, "Veuillez remplir tous les champs")
+            return redirect('checkout')
+
+        if payment_method not in valid_payment_methods:
+            messages.error(request, "Mode de paiement invalide.")
             return redirect('checkout')
 
         order = Order.objects.create(
@@ -73,6 +83,10 @@ def checkout(request):
 
         cart.items.all().delete()
 
+        audit_logger.info(
+            'ORDER_CREATED | order_id=%d client_id=%d total=%s payment=%s',
+            order.pk, request.user.pk, order.total, order.payment_method
+        )
         messages.success(request, f"Commande #{order.pk} passée avec succès !")
         return redirect('order_detail', pk=order.pk)
 

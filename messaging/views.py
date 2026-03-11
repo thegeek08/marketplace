@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -5,6 +7,8 @@ from django.core.mail import send_mail
 from django.conf import settings as django_settings
 from .models import Conversation, Message, UserBlock, UserReport
 from products.models import Product
+
+audit_logger = logging.getLogger('audit')
 
 
 @login_required
@@ -44,6 +48,9 @@ def conversation_detail(request, pk):
             return redirect('conversation_detail', pk=pk)
 
         content = request.POST.get('content', '').strip()
+        if len(content) > 2000:
+            messages.error(request, "Le message ne peut pas dépasser 2000 caractères.")
+            return redirect('conversation_detail', pk=pk)
         if content:
             msg = Message.objects.create(
                 conversation=conversation,
@@ -171,12 +178,16 @@ def report_user(request, pk):
                 subject=subject,
                 message=body,
                 from_email=django_settings.DEFAULT_FROM_EMAIL,
-                recipient_list=['babacardabo109@gmail.com'],
+                recipient_list=[django_settings.ADMIN_EMAIL],
                 fail_silently=False,
             )
         except Exception:
             pass  # Le signalement est enregistré même si l'email échoue
 
+        audit_logger.warning(
+            'USER_REPORT | reporter_id=%d reported_id=%d reason=%s conversation_id=%d',
+            user.pk, other_user.pk, reason, conversation.pk
+        )
         messages.success(request, "Signalement envoyé. Nous examinerons la situation rapidement.")
 
     return redirect('conversation_detail', pk=pk)

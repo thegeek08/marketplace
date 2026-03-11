@@ -1,7 +1,11 @@
+import re
 from django import forms
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+# Numéros sénégalais (E.164) ou format international générique
+_PHONE_RE = re.compile(r'^\+?[0-9\s\-]{7,20}$')
 
 
 class RegisterForm(forms.ModelForm):
@@ -51,6 +55,14 @@ class RegisterForm(forms.ModelForm):
                 "Vous devez accepter la politique de confidentialité"
             )
         return accepted
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone', '').strip()
+        if not _PHONE_RE.match(phone):
+            raise forms.ValidationError(
+                "Numéro de téléphone invalide. Utilisez le format +221771234567 ou 0033612345678."
+            )
+        return phone
 
     def clean(self):
         cleaned_data = super().clean()
@@ -159,6 +171,8 @@ class CompleteProfileForm(forms.ModelForm):
             raise forms.ValidationError("Le nom complet est obligatoire.")
         if len(nom) < 3:
             raise forms.ValidationError("Le nom doit contenir au moins 3 caractères.")
+        if len(nom) > 100:
+            raise forms.ValidationError("Le nom ne peut pas dépasser 100 caractères.")
         return nom
 
     def clean_domaine(self):
@@ -202,6 +216,18 @@ class ProfileForm(forms.ModelForm):
             'show_phone': 'Afficher mon numéro publiquement',
         }
 
+    def clean_nom(self):
+        nom = self.cleaned_data.get('nom', '').strip()
+        if nom and len(nom) > 100:
+            raise forms.ValidationError("Le nom ne peut pas dépasser 100 caractères.")
+        return nom
+
+    def clean_bio(self):
+        bio = self.cleaned_data.get('bio', '').strip()
+        if len(bio) > 1000:
+            raise forms.ValidationError("La biographie ne peut pas dépasser 1000 caractères.")
+        return bio
+
 
 class ChangePasswordForm(forms.Form):
     old_password = forms.CharField(
@@ -233,3 +259,14 @@ class ChangePasswordForm(forms.Form):
         if p1 and p2 and p1 != p2:
             raise forms.ValidationError("Les nouveaux mots de passe ne correspondent pas")
         return cleaned_data
+
+
+class DeleteAccountForm(forms.Form):
+    """Demande de confirmation du mot de passe avant suppression du compte."""
+    password = forms.CharField(
+        label="Confirmer avec votre mot de passe",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Votre mot de passe actuel'
+        })
+    )

@@ -46,7 +46,17 @@ def remove_from_cart(request, pk):
 def update_quantity(request, pk):
     cart = get_object_or_404(Cart, user=request.user)
     cart_item = get_object_or_404(CartItem, cart=cart, pk=pk)
-    quantity = int(request.POST.get('quantity', 1))
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+    except (ValueError, TypeError):
+        messages.error(request, "Quantité invalide.")
+        return redirect('cart_detail')
+
+    MAX_QUANTITY = 99
+    if quantity > MAX_QUANTITY:
+        quantity = MAX_QUANTITY
+        messages.warning(request, f"Quantité limitée à {MAX_QUANTITY} par article.")
+
     if quantity > 0:
         cart_item.quantity = quantity
         cart_item.save()

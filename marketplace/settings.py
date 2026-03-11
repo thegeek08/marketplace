@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITE
 # ──────────────────────────────────────────────
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-u#3_uc$t)_x5#s37_0eiq8oe692=rne%v$uw70c-t39jnwppw$')
+SECRET_KEY = config('SECRET_KEY')  # Obligatoire — aucun fallback pour éviter une clé prévisible en production
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # sert les fichiers statiques en production
+    'users.middleware.SecurityHeadersMiddleware',  # CSP, Referrer-Policy, Permissions-Policy
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -198,6 +199,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Marketplace <noreply@marketplace.sn>')
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='')  # Email de l'admin pour les signalements
 
 # ──────────────────────────────────────────────
 # SECURITE HTTPS (actif hors DEBUG)
@@ -208,3 +210,112 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HSTS : force HTTPS pendant 1 an, inclut les sous-domaines
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Empêche le MIME sniffing
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# ──────────────────────────────────────────────
+# LIMITE TAILLE DES UPLOADS
+# ──────────────────────────────────────────────
+
+# 5 Mo max pour les images (avatars, produits)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 Mo
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 Mo
+
+# ──────────────────────────────────────────────
+# SESSIONS
+# ──────────────────────────────────────────────
+
+SESSION_COOKIE_AGE            = 86400   # 24 h en secondes
+SESSION_SAVE_EVERY_REQUEST    = True    # renouvelle le TTL à chaque requête
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False # persiste après fermeture du navigateur
+SESSION_COOKIE_HTTPONLY       = True    # inaccessible au JS (XSS mitigation)
+SESSION_COOKIE_SAMESITE       = 'Lax'  # protection CSRF cross-site
+
+# ──────────────────────────────────────────────
+# CACHE (utilisé par le rate-limiter brute force)
+# En production, remplace par Redis via REDIS_URL
+# ──────────────────────────────────────────────
+
+REDIS_URL = config('REDIS_URL', default='')
+
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'marketplace-cache',
+        }
+    }
+
+# ──────────────────────────────────────────────
+# PROTECTION BRUTE FORCE
+# ──────────────────────────────────────────────
+
+BRUTE_FORCE_MAX_ATTEMPTS = 5     # tentatives avant blocage
+BRUTE_FORCE_LOCKOUT_SECS = 900   # 15 minutes
+
+# ──────────────────────────────────────────────
+# LOGS DE SECURITE ET D'AUDIT
+# ──────────────────────────────────────────────
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'security': {
+            'format': '[%(asctime)s] %(levelname)s %(name)s | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'verbose': {
+            'format': '[%(asctime)s] %(levelname)s %(module)s | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'security_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'security.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 Mo
+            'backupCount': 5,
+            'formatter': 'security',
+        },
+        'audit_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'audit.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'security',
+        },
+    },
+    'loggers': {
+        'security': {
+            'handlers': ['console', 'security_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['console', 'audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

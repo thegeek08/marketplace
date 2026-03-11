@@ -35,15 +35,25 @@ class ProductForm(forms.ModelForm):
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
-        if price <= 0:
+        if price is None or price <= 0:
             raise forms.ValidationError("Le prix doit être supérieur à 0")
+        if price > 100_000_000:
+            raise forms.ValidationError("Prix trop élevé.")
         return price
 
     def clean_name(self):
-        name = self.cleaned_data.get('name')
+        name = self.cleaned_data.get('name', '').strip()
         if len(name) < 3:
             raise forms.ValidationError("Le nom doit contenir au moins 3 caractères")
+        if len(name) > 200:
+            raise forms.ValidationError("Le nom ne peut pas dépasser 200 caractères.")
         return name
+
+    def clean_description(self):
+        description = self.cleaned_data.get('description', '').strip()
+        if len(description) > 5000:
+            raise forms.ValidationError("La description ne peut pas dépasser 5000 caractères.")
+        return description
 
 
 class RatingForm(forms.ModelForm):

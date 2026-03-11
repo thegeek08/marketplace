@@ -7,7 +7,7 @@ from products import views as product_views
 
 urlpatterns = [
     path('', product_views.home, name='home'),
-    path('admin/', admin.site.urls),
+    path('gestion-secure-panel/', admin.site.urls),  # URL non prévisible pour l'admin
     path('products/', include('products.urls')),
     path('users/', include('users.urls')),
     path('users/', include('django.contrib.auth.urls')),

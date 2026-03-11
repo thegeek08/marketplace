@@ -31,3 +31,6 @@ media/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs (conservés localement, non versionnés)
+logs/*.log

@@ -95,11 +95,20 @@
       <div class="card-body">
         <p class="text-danger mb-3" style="font-size:.9rem;">La suppression de votre compte est irréversible.</p>
         <div class="d-flex flex-column flex-sm-row gap-2">
-          <a href="{% url 'logout' %}" class="btn btn-outline-dark flex-fill">🚪 Déconnexion</a>
+          <form method="POST" action="{% url 'logout' %}" class="flex-fill">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-dark w-100">🚪 Déconnexion</button>
+          </form>
           <form method="POST" class="flex-fill"
-                onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ?')">
+                onsubmit="return confirm('Êtes-vous sûr ? Cette action est irréversible.')">
             {% csrf_token %}
             <input type="hidden" name="action" value="delete_account">
+            <div class="mb-2">
+              {{ delete_form.password }}
+              {% if delete_form.password.errors %}
+                <div class="text-danger small">{{ delete_form.password.errors }}</div>
+              {% endif %}
+            </div>
             <button type="submit" class="btn btn-danger w-100">🗑️ Supprimer mon compte</button>
           </form>
         </div>

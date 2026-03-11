@@ -1,5 +1,4 @@
-import random
-import string
+import secrets
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
@@ -103,7 +102,8 @@ class PhoneVerification(models.Model):
 
     @classmethod
     def generate_code(cls):
-        return ''.join(random.choices(string.digits, k=6))
+        # secrets.randbelow est cryptographiquement sûr (contrairement à random)
+        return str(secrets.randbelow(1_000_000)).zfill(6)
 
     def __str__(self):
         return f"Code {self.code} pour {self.user.phone} ({self.user.role})"
