@@ -1,21 +1,22 @@
 {% load static %}
 /* ============================================================
    Service Worker — Marketplace Sénégal
+   Version : {{ app_version }}
    Stratégie :
      - Install  : pré-cache offline page + assets critiques
-     - Activate : purge des anciens caches
+     - Activate : purge des anciens caches + prise de contrôle immédiate
      - Fetch    : Network First pour HTML, Cache First pour assets
    ============================================================ */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = '{{ app_version }}';
 const CACHE_STATIC  = 'marketplace-static-'  + CACHE_VERSION;
 const CACHE_DYNAMIC = 'marketplace-dynamic-' + CACHE_VERSION;
 
 const PRECACHE_URLS = [
   '/offline/',
   '/static/manifest.json',
-  '/static/icons/icon-192.png',
-  '/static/icons/icon-512.png',
+  '/static/icons/icon-192.png?v=3',
+  '/static/icons/icon-512.png?v=3',
   /* Bootstrap (CDN) */
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
@@ -28,6 +29,7 @@ self.addEventListener('install', event => {
       return cache.addAll(PRECACHE_URLS);
     })
   );
+  /* Activer immédiatement sans attendre la fermeture des onglets */
   self.skipWaiting();
 });
 
@@ -39,11 +41,23 @@ self.addEventListener('activate', event => {
       Promise.all(
         keys
           .filter(key => !CURRENT.includes(key))
-          .map(key => caches.delete(key))
+          .map(key => {
+            console.log('[SW] Suppression ancien cache:', key);
+            return caches.delete(key);
+          })
       )
-    )
+    ).then(() => {
+      /* Prendre le contrôle de tous les onglets ouverts immédiatement */
+      return self.clients.claim();
+    })
   );
-  self.clients.claim();
+});
+
+/* ── MESSAGE : forcer la mise à jour ── */
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 /* ── FETCH ── */
@@ -51,9 +65,9 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  /* Ignorer les requêtes non-GET et les URLs d'admin/API */
+  /* Ignorer les requêtes non-GET et les URLs d'admin */
   if (request.method !== 'GET') return;
-  if (url.pathname.startsWith('/admin/')) return;
+  if (url.pathname.startsWith('/gestion-secure-panel/')) return;
 
   /* Assets statiques → Cache First */
   if (

@@ -12,6 +12,9 @@ SECRET_KEY = config('SECRET_KEY')  # Obligatoire — aucun fallback pour éviter
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+# Version de l'application — incrémenter à chaque déploiement pour forcer le rechargement du cache PWA
+APP_VERSION = config('APP_VERSION', default='v2')
+
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
     default='localhost,127.0.0.1',

@@ -20,6 +20,7 @@ urlpatterns = [
     path('sw.js', TemplateView.as_view(
         template_name='pwa/sw.js',
         content_type='application/javascript',
+        extra_context={'app_version': settings.APP_VERSION},
     ), name='service_worker'),
     path('offline/', TemplateView.as_view(
         template_name='pwa/offline.html',

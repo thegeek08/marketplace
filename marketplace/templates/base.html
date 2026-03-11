@@ -124,6 +124,13 @@
   <button type="button" class="btn-close btn-sm" onclick="document.getElementById('pwa-banner').classList.add('d-none')"></button>
 </div>
 
+<!-- ── Bannière mise à jour disponible ── -->
+<div id="pwa-update-banner" class="d-none alert alert-warning alert-dismissible mb-0 rounded-0 text-center py-2" style="font-size:.875rem; z-index:9999;">
+  <strong>🔄 Mise à jour disponible !</strong> Une nouvelle version de l'application est prête.
+  <button id="pwa-update-btn" class="btn btn-sm btn-dark ms-2 py-0 px-2">Mettre à jour</button>
+  <button type="button" class="btn-close btn-sm" onclick="document.getElementById('pwa-update-banner').classList.add('d-none')"></button>
+</div>
+
 <!-- ── Navbar ── -->
 <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
   <div class="container">
@@ -278,12 +285,53 @@
 
 <!-- Service Worker -->
 <script>
+  let swRegistration = null;
+
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(err => console.warn('SW:', err));
+    window.addEventListener('load', async () => {
+      try {
+        swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+
+        /* Vérifier les mises à jour toutes les 60 secondes */
+        setInterval(() => swRegistration.update(), 60000);
+
+        /* Détecter un nouveau SW en attente (waiting) */
+        swRegistration.addEventListener('updatefound', () => {
+          const newWorker = swRegistration.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              /* Nouveau SW installé et prêt — afficher la bannière */
+              document.getElementById('pwa-update-banner').classList.remove('d-none');
+            }
+          });
+        });
+
+        /* Si un SW est déjà en attente au chargement de la page */
+        if (swRegistration.waiting && navigator.serviceWorker.controller) {
+          document.getElementById('pwa-update-banner').classList.remove('d-none');
+        }
+
+      } catch (err) {
+        console.warn('SW:', err);
+      }
+    });
+
+    /* Recharger la page quand le nouveau SW prend le contrôle */
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload(); }
     });
   }
+
+  /* Bouton "Mettre à jour" → envoyer SKIP_WAITING au SW en attente */
+  document.getElementById('pwa-update-btn').addEventListener('click', () => {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+  });
+
+  /* ── Bannière installation PWA ── */
   let deferredPrompt = null;
   const banner = document.getElementById('pwa-banner');
   const installBtn = document.getElementById('pwa-install-btn');
