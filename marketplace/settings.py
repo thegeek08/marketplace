@@ -108,8 +108,30 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = '/users/login/'
-LOGIN_REDIRECT_URL = '/products/list/'
+LOGIN_REDIRECT_URL = '/users/dashboard/'
 LOGOUT_REDIRECT_URL = '/users/login/'
+
+# ──────────────────────────────────────────────
+# AUTHENTICATION BACKENDS
+# PhoneRoleBackend gère 2 comptes par numéro (client + vendeur)
+# ──────────────────────────────────────────────
+
+AUTHENTICATION_BACKENDS = [
+    'users.backends.PhoneRoleBackend',
+]
+
+# ──────────────────────────────────────────────
+# TWILIO SMS
+# Configurer dans .env :
+#   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#   TWILIO_AUTH_TOKEN=your_auth_token
+#   TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
+# Si non configuré : le code s'affiche dans la console (mode dev)
+# ──────────────────────────────────────────────
+
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+TWILIO_PHONE_NUMBER = config('TWILIO_PHONE_NUMBER', default='')
 
 # ──────────────────────────────────────────────
 # INTERNATIONALISATION

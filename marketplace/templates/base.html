@@ -155,6 +155,10 @@
     <div class="collapse navbar-collapse" id="navMenu">
       <div class="navbar-nav ms-auto align-items-md-center gap-md-1 gap-0">
         {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="nav-link text-white fw-semibold">
+            {% if user.role == 'vendeur' %}🛍️{% else %}👤{% endif %}
+            Dashboard
+          </a>
           <a href="{% url 'profile' %}" class="nav-link text-white">
             {% if user.avatar %}
               <img src="{{ user.avatar.url }}" class="rounded-circle me-1" style="width:24px;height:24px;object-fit:cover;">
@@ -242,9 +246,9 @@
     <span class="icon">💬</span>
     <span>Messages</span>
   </a>
-  <a href="{% url 'profile' %}">
-    <span class="icon">👤</span>
-    <span>Profil</span>
+  <a href="{% url 'dashboard' %}">
+    <span class="icon">🏡</span>
+    <span>Dashboard</span>
   </a>
 </nav>
 {% else %}

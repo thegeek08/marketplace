@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block extra_css %}
+.dash-card {
+  border-radius: 14px;
+  transition: transform .15s, box-shadow .15s;
+}
+.dash-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.1) !important;
+}
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  opacity: .75;
+}
+.quick-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  text-decoration: none;
+  color: #212529;
+  font-size: .82rem;
+  font-weight: 500;
+  transition: background .15s;
+}
+.quick-link:hover { background: #e9ecef; color: #212529; }
+.quick-link .ql-icon { font-size: 1.6rem; }
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <div>
+    <h2 class="mb-0 fw-bold">
+      {% if user.role == 'vendeur' %}🛍️{% else %}👤{% endif %}
+      Bonjour, {{ user.nom|default:user.phone }} !
+    </h2>
+    <p class="text-muted small mb-0">
+      Compte <strong>{{ user.get_role_display }}</strong>
+      {% if user.phone_verified %}
+        <span class="badge bg-success ms-1">✔ Vérifié</span>
+      {% else %}
+        <span class="badge bg-warning text-dark ms-1">Non vérifié</span>
+      {% endif %}
+    </p>
+  </div>
+  <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">⚙️ Mon profil</a>
+</div>
+
+{% if user.role == 'client' %}
+<!-- ════════════════════════════ CLIENT ════════════════════════════ -->
+
+<!-- Statistiques -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-primary">{{ orders_count }}</div>
+      <div class="stat-label">Commandes</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-warning">{{ orders_en_attente }}</div>
+      <div class="stat-label">En attente</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-danger">{{ favorites_count }}</div>
+      <div class="stat-label">Favoris</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-success">{{ unread_messages }}</div>
+      <div class="stat-label">Messages non lus</div>
+    </div>
+  </div>
+</div>
+
+<!-- Accès rapide -->
+<h5 class="fw-semibold mb-3">Accès rapide</h5>
+<div class="row g-2 mb-4">
+  <div class="col-3">
+    <a href="{% url 'product_list' %}" class="quick-link">
+      <span class="ql-icon">🔍</span>Explorer
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'cart_detail' %}" class="quick-link">
+      <span class="ql-icon">🛒</span>Panier
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'order_list' %}" class="quick-link">
+      <span class="ql-icon">📦</span>Commandes
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'favorite_list' %}" class="quick-link">
+      <span class="ql-icon">❤️</span>Favoris
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'conversation_list' %}" class="quick-link">
+      <span class="ql-icon">💬</span>Messages
+      {% if unread_messages > 0 %}
+        <span class="badge bg-danger rounded-pill">{{ unread_messages }}</span>
+      {% endif %}
+    </a>
+  </div>
+</div>
+
+<!-- Dernières commandes -->
+{% if recent_orders %}
+<h5 class="fw-semibold mb-3">Dernières commandes</h5>
+<div class="card border-0 shadow-sm">
+  <div class="list-group list-group-flush">
+    {% for order in recent_orders %}
+    <a href="{% url 'order_detail' order.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <div>
+        <span class="fw-semibold">#{{ order.pk }}</span>
+        <span class="text-muted ms-2 small">{{ order.created_at|date:"d/m/Y" }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-primary fw-bold">{{ order.total|floatformat:0 }} FCFA</span>
+        <span class="badge
+          {% if order.status == 'livree' %}bg-success
+          {% elif order.status == 'annulee' %}bg-danger
+          {% elif order.status == 'en_livraison' %}bg-info
+          {% else %}bg-warning text-dark{% endif %}
+        ">{{ order.get_status_display }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% if orders_count > 5 %}
+<div class="text-center mt-2">
+  <a href="{% url 'order_list' %}" class="btn btn-outline-dark btn-sm">Voir toutes mes commandes →</a>
+</div>
+{% endif %}
+{% endif %}
+
+{% elif user.role == 'vendeur' %}
+<!-- ════════════════════════════ VENDEUR ════════════════════════════ -->
+
+<!-- Statistiques -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-primary">{{ products_count }}</div>
+      <div class="stat-label">Produits</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-info">{{ orders_count }}</div>
+      <div class="stat-label">Commandes reçues</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-warning">{{ orders_en_attente }}</div>
+      <div class="stat-label">En attente</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card dash-card border-0 shadow-sm h-100 text-center p-3">
+      <div class="stat-value text-success" style="font-size:1.4rem;">{{ revenue|floatformat:0 }}</div>
+      <div class="stat-label">Revenus FCFA (livrés)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Accès rapide -->
+<h5 class="fw-semibold mb-3">Accès rapide</h5>
+<div class="row g-2 mb-4">
+  <div class="col-3">
+    <a href="{% url 'add_product' %}" class="quick-link">
+      <span class="ql-icon">➕</span>Ajouter
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'product_list' %}" class="quick-link">
+      <span class="ql-icon">🛍️</span>Produits
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'vendor_order_list' %}" class="quick-link">
+      <span class="ql-icon">📦</span>Commandes
+    </a>
+  </div>
+  <div class="col-3">
+    <a href="{% url 'conversation_list' %}" class="quick-link">
+      <span class="ql-icon">💬</span>Messages
+      {% if unread_messages > 0 %}
+        <span class="badge bg-danger rounded-pill">{{ unread_messages }}</span>
+      {% endif %}
+    </a>
+  </div>
+</div>
+
+<!-- Dernières commandes reçues -->
+{% if recent_orders %}
+<h5 class="fw-semibold mb-3">Dernières commandes reçues</h5>
+<div class="card border-0 shadow-sm">
+  <div class="list-group list-group-flush">
+    {% for order in recent_orders %}
+    <a href="{% url 'vendor_order_detail' order.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <div>
+        <span class="fw-semibold">#{{ order.pk }}</span>
+        <span class="text-muted ms-2 small">{{ order.created_at|date:"d/m/Y" }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-primary fw-bold">{{ order.total|floatformat:0 }} FCFA</span>
+        <span class="badge
+          {% if order.status == 'livree' %}bg-success
+          {% elif order.status == 'annulee' %}bg-danger
+          {% elif order.status == 'en_livraison' %}bg-info
+          {% else %}bg-warning text-dark{% endif %}
+        ">{{ order.get_status_display }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% if orders_count > 5 %}
+<div class="text-center mt-2">
+  <a href="{% url 'vendor_order_list' %}" class="btn btn-outline-dark btn-sm">Voir toutes les commandes →</a>
+</div>
+{% endif %}
+{% endif %}
+
+{% endif %}
+{% endblock %}

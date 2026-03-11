@@ -26,7 +26,7 @@ class RegisterForm(forms.ModelForm):
         widgets = {
             'phone': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Numéro de téléphone'
+                'placeholder': 'Numéro de téléphone (ex: +221771234567)'
             }),
             'nom': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -54,6 +54,23 @@ class RegisterForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        phone = cleaned_data.get('phone')
+        role = cleaned_data.get('role')
+
+        # ── Limite : max 2 comptes par numéro (1 client + 1 vendeur) ──
+        if phone and role:
+            existing = User.objects.filter(phone=phone)
+            if existing.count() >= 2:
+                raise forms.ValidationError(
+                    "Ce numéro a déjà atteint la limite de comptes (1 client + 1 vendeur maximum)."
+                )
+            if existing.filter(role=role).exists():
+                role_label = "client" if role == "client" else "vendeur"
+                raise forms.ValidationError(
+                    f"Un compte {role_label} existe déjà pour ce numéro de téléphone."
+                )
+
+        # ── Validation mots de passe ──
         p1 = cleaned_data.get('password1')
         p2 = cleaned_data.get('password2')
         if p1 and p2 and p1 != p2:
@@ -76,11 +93,32 @@ class LoginForm(forms.Form):
             'placeholder': 'Numéro de téléphone'
         })
     )
+    role = forms.ChoiceField(
+        label="Je me connecte en tant que",
+        choices=[('client', 'Client'), ('vendeur', 'Vendeur')],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
     password = forms.CharField(
         label="Mot de passe",
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'placeholder': 'Mot de passe'
+        })
+    )
+
+
+class VerifyCodeForm(forms.Form):
+    code = forms.CharField(
+        label="Code de vérification",
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg text-center',
+            'placeholder': '000000',
+            'inputmode': 'numeric',
+            'autocomplete': 'one-time-code',
+            'maxlength': '6',
+            'style': 'letter-spacing: .5rem; font-size: 1.5rem;'
         })
     )
 
