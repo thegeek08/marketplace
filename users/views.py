@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum
 
-from .forms import RegisterForm, LoginForm, VerifyCodeForm, ProfileForm, ChangePasswordForm
+from .forms import RegisterForm, LoginForm, VerifyCodeForm, CompleteProfileForm, ProfileForm, ChangePasswordForm
 from .models import PhoneVerification
 from .sms import send_verification_sms, twilio_configured
 
@@ -42,8 +42,8 @@ def register(request):
                 user.phone_verified = False  # sera True quand Twilio activé
                 user.save()
                 login(request, user, backend='users.backends.PhoneRoleBackend')
-                messages.success(request, f"Bienvenue {user.nom or user.phone} ! Compte créé avec succès.")
-                return redirect("dashboard")
+                messages.success(request, "Compte créé ! Complétez votre profil pour continuer.")
+                return redirect("complete_profile")
     else:
         form = RegisterForm()
     return render(request, "users/register.html", {"form": form})
@@ -106,8 +106,8 @@ def verify_phone(request):
 
                 # Connecter l'utilisateur
                 login(request, user, backend='users.backends.PhoneRoleBackend')
-                messages.success(request, f"Bienvenue {user.nom or user.phone} ! Votre compte est activé.")
-                return redirect("dashboard")
+                messages.success(request, "Numéro vérifié ! Complétez votre profil pour continuer.")
+                return redirect("complete_profile")
     else:
         form = VerifyCodeForm()
 
@@ -171,6 +171,8 @@ def login_view(request):
                     return redirect("verify_phone")
                 login(request, user)
                 messages.success(request, "Connexion réussie !")
+                if not user.profile_completed:
+                    return redirect("complete_profile")
                 return redirect("dashboard")
             else:
                 messages.error(request, "Téléphone, rôle ou mot de passe incorrect.")
@@ -187,6 +189,30 @@ def logout_view(request):
     logout(request)
     messages.info(request, "Vous êtes déconnecté")
     return redirect("login")
+
+
+# ──────────────────────────────────────────────────────────
+# COMPLÉTION DE PROFIL (obligatoire après inscription)
+# ──────────────────────────────────────────────────────────
+
+@login_required
+def complete_profile(request):
+    # Si déjà complété, aller directement au dashboard
+    if request.user.profile_completed:
+        return redirect("dashboard")
+
+    if request.method == "POST":
+        form = CompleteProfileForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.profile_completed = True
+            user.save()
+            messages.success(request, f"Profil complété ! Bienvenue {user.nom} 🎉")
+            return redirect("dashboard")
+    else:
+        form = CompleteProfileForm(instance=request.user)
+
+    return render(request, "users/complete_profile.html", {"form": form})
 
 
 # ──────────────────────────────────────────────────────────

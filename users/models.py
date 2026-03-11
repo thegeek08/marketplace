@@ -22,6 +22,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('phone_verified', True)
+        extra_fields.setdefault('profile_completed', True)
         return self.create_user(phone, password, **extra_fields)
 
 
@@ -39,10 +40,28 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     accepted_privacy_policy = models.BooleanField(default=False)
 
+    DOMAINE_CHOICES = [
+        ('agriculture', 'Agriculture'),
+        ('commerce', 'Commerce'),
+        ('electronique', 'Électronique'),
+        ('mode', 'Mode & Vêtements'),
+        ('beaute', 'Beauté & Cosmétiques'),
+        ('alimentation', 'Alimentation'),
+        ('informatique', 'Informatique'),
+        ('autre', 'Autre'),
+    ]
+
     # Champs profil
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
     show_phone = models.BooleanField(default=False)
+    domaine = models.CharField(
+        max_length=30,
+        choices=DOMAINE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Domaine d'activité"
+    )
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -50,6 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     phone_verified = models.BooleanField(default=False)
+    profile_completed = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = []

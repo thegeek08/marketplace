@@ -8,5 +8,6 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("verify/", views.verify_phone, name="verify_phone"),
     path("verify/resend/", views.resend_verification, name="resend_verification"),
+    path("complete-profile/", views.complete_profile, name="complete_profile"),
     path("dashboard/", views.dashboard, name="dashboard"),
 ]

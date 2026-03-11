@@ -123,6 +123,51 @@ class VerifyCodeForm(forms.Form):
     )
 
 
+class CompleteProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['nom', 'email', 'avatar', 'domaine']
+        widgets = {
+            'nom': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'placeholder': 'Prénom et nom complet',
+                'autofocus': True,
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control form-control-lg',
+                'placeholder': 'votre@email.com',
+            }),
+            'avatar': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+                'id': 'avatarInput',
+            }),
+            'domaine': forms.Select(attrs={
+                'class': 'form-select form-select-lg',
+            }),
+        }
+        labels = {
+            'nom': 'Nom complet',
+            'email': 'Adresse email',
+            'avatar': 'Photo de profil',
+            'domaine': "Domaine d'activité",
+        }
+
+    def clean_nom(self):
+        nom = self.cleaned_data.get('nom', '').strip()
+        if not nom:
+            raise forms.ValidationError("Le nom complet est obligatoire.")
+        if len(nom) < 3:
+            raise forms.ValidationError("Le nom doit contenir au moins 3 caractères.")
+        return nom
+
+    def clean_domaine(self):
+        domaine = self.cleaned_data.get('domaine')
+        if not domaine:
+            raise forms.ValidationError("Veuillez choisir un domaine d'activité.")
+        return domaine
+
+
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User

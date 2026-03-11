@@ -59,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.middleware.ProfileCompletionMiddleware',  # force complétion profil après inscription
 ]
 
 ROOT_URLCONF = 'marketplace.urls'
