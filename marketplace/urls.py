@@ -3,7 +3,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from django.http import JsonResponse
+from django.utils import timezone
 from products import views as product_views
+
+
+def ping(request):
+    """Endpoint keep-alive pour empêcher Render de mettre le serveur en veille."""
+    return JsonResponse({'status': 'ok', 'time': timezone.now().isoformat()})
 
 
 class NoCacheTemplateView(TemplateView):
@@ -20,6 +27,7 @@ class NoCacheTemplateView(TemplateView):
 
 
 urlpatterns = [
+    path('ping/', ping, name='ping'),
     path('', product_views.home, name='home'),
     path('gestion-secure-panel/', admin.site.urls),  # URL non prévisible pour l'admin
     path('products/', include('products.urls')),

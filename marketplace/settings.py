@@ -15,6 +15,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Version de l'application — incrémenter à chaque déploiement pour forcer le rechargement du cache PWA
 APP_VERSION = config('APP_VERSION', default='v2')
 
+# URL de production Render — utilisée par le management command keep_alive
+RENDER_URL = config('RENDER_URL', default='https://marketplace-q807.onrender.com/ping/')
+
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
     default='localhost,127.0.0.1',
