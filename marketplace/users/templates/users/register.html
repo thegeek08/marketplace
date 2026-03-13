@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Inscription{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-9 col-md-6">
+    <div class="card border-0 shadow">
+      <div class="card-header bg-dark text-white text-center py-3">
+        <h4 class="mb-0">📝 Inscription</h4>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Téléphone</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}
+              <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Je suis</label>
+            {{ form.role }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mot de passe</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+              <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Confirmer le mot de passe</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+              <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-4 p-3 bg-light rounded d-flex align-items-start gap-2">
+            {{ form.accepted_privacy_policy }}
+            <label class="form-check-label" style="font-size:.9rem;">
+              J'accepte la <a href="#">politique de confidentialité</a>
+            </label>
+          </div>
+          {% if form.accepted_privacy_policy.errors %}
+            <div class="text-danger small mb-3">{{ form.accepted_privacy_policy.errors }}</div>
+          {% endif %}
+          <button type="submit" class="btn btn-dark btn-lg w-100">S'inscrire</button>
+        </form>
+        <hr>
+        <p class="text-center mb-0">Déjà un compte ? <a href="{% url 'login' %}">Se connecter</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

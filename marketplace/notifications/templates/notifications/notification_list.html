@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Mes notifications{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h4 class="mb-4">🔔 Mes notifications</h4>
+
+    {% if notifications %}
+      <div class="list-group shadow">
+        {% for notif in notifications %}
+          <a href="{% url 'notification_read' notif.pk %}"
+             class="list-group-item list-group-item-action d-flex justify-content-between align-items-start
+                    {% if not notif.is_read %}list-group-item-light fw-semibold{% endif %}">
+            <div class="d-flex align-items-center gap-3">
+              <span class="fs-4">
+                {% if notif.type == 'commande' %}📦
+                {% elif notif.type == 'message' %}💬
+                {% elif notif.type == 'statut' %}🔄
+                {% endif %}
+              </span>
+              <div>
+                <p class="mb-1">{{ notif.message }}</p>
+                <small class="text-muted">{{ notif.created_at|date:"d/m/Y H:i" }}</small>
+              </div>
+            </div>
+            {% if not notif.is_read %}
+              <span class="badge bg-danger rounded-pill">Nouveau</span>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <p class="fs-4">Aucune notification pour l'instant.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

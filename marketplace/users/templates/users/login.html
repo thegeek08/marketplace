@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-8 col-md-5">
+    <div class="card border-0 shadow">
+      <div class="card-header bg-dark text-white text-center py-3">
+        <h4 class="mb-0">🔐 Connexion</h4>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Téléphone</label>
+            {{ form.phone }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Je me connecte en tant que</label>
+            {{ form.role }}
+            <div class="form-text text-muted small">
+              Si vous avez un compte vendeur, sélectionnez <strong>Vendeur</strong>.
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Mot de passe</label>
+            {{ form.password }}
+          </div>
+          <button type="submit" class="btn btn-dark btn-lg w-100">Se connecter</button>
+        </form>
+        <hr>
+        <p class="text-center mb-1">
+          <a href="{% url 'password_reset' %}">Mot de passe oublié ?</a>
+        </p>
+        <p class="text-center mb-0">
+          Pas de compte ? <a href="{% url 'register' %}">S'inscrire</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

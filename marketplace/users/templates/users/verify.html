@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Vérification SMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-9 col-md-5">
+    <div class="card border-0 shadow">
+      <div class="card-header bg-dark text-white text-center py-3">
+        <h4 class="mb-0">📱 Vérification SMS</h4>
+      </div>
+      <div class="card-body p-4 text-center">
+        <p class="text-muted mb-1">Un code à 6 chiffres a été envoyé au</p>
+        <p class="fw-bold fs-5 mb-3">{{ phone }}</p>
+        <p class="text-muted small mb-4">Le code expire dans <strong>10 minutes</strong>.</p>
+
+        <form method="POST">
+          {% csrf_token %}
+          <div class="mb-4">
+            {{ form.code }}
+            {% if form.code.errors %}
+              <div class="text-danger small mt-2">{{ form.code.errors }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-dark btn-lg w-100">
+            ✅ Vérifier mon numéro
+          </button>
+        </form>
+
+        <hr class="my-4">
+
+        <p class="text-muted small mb-2">Vous n'avez pas reçu le SMS ?</p>
+        <a href="{% url 'resend_verification' %}" class="btn btn-outline-secondary w-100">
+          🔄 Renvoyer le code
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

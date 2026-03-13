@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Mon Profil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+
+    <!-- En-tête profil -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body text-center py-4">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" class="rounded-circle mb-3"
+               style="width:90px; height:90px; object-fit:cover; border: 3px solid #dee2e6;">
+        {% else %}
+          <div class="rounded-circle bg-dark d-inline-flex align-items-center justify-content-center mb-3"
+               style="width:90px; height:90px;">
+            <span class="text-white" style="font-size:2.5rem;">👤</span>
+          </div>
+        {% endif %}
+        <h5 class="mb-1">{{ user.nom|default:"Sans nom" }}</h5>
+        <span class="badge bg-dark">
+          {% if user.role == 'vendeur' %}🛍️ Vendeur{% else %}👤 Client{% endif %}
+        </span>
+        {% if user.bio %}
+          <p class="mt-2 text-muted mb-0" style="font-size:.9rem;">{{ user.bio }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Modifier profil -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-dark text-white py-2">
+        <h6 class="mb-0">✏️ Modifier mon profil</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_profile">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nom affiché</label>
+            {{ profile_form.nom }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            {{ profile_form.email }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Photo de profil</label>
+            {{ profile_form.avatar }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Biographie</label>
+            {{ profile_form.bio }}
+          </div>
+          <div class="mb-3 d-flex align-items-center gap-2 p-3 bg-light rounded">
+            {{ profile_form.show_phone }}
+            <label class="form-check-label" style="font-size:.9rem;">Afficher mon numéro publiquement</label>
+          </div>
+          <button type="submit" class="btn btn-dark w-100">💾 Sauvegarder</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mot de passe -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-dark text-white py-2">
+        <h6 class="mb-0">🔑 Changer mon mot de passe</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ancien mot de passe</label>
+            {{ password_form.old_password }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nouveau mot de passe</label>
+            {{ password_form.new_password1 }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Confirmer</label>
+            {{ password_form.new_password2 }}
+          </div>
+          <button type="submit" class="btn btn-dark w-100">🔒 Changer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Zone dangereuse -->
+    <div class="card border-0 shadow-sm mb-3 border-danger">
+      <div class="card-header bg-danger text-white py-2">
+        <h6 class="mb-0">⚠️ Zone dangereuse</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-danger mb-3" style="font-size:.9rem;">La suppression de votre compte est irréversible.</p>
+        <div class="d-flex flex-column flex-sm-row gap-2">
+          <form method="POST" action="{% url 'logout' %}" class="flex-fill">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-dark w-100">🚪 Déconnexion</button>
+          </form>
+          <form method="POST" class="flex-fill"
+                onsubmit="return confirm('Êtes-vous sûr ? Cette action est irréversible.')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_account">
+            <div class="mb-2">
+              {{ delete_form.password }}
+              {% if delete_form.password.errors %}
+                <div class="text-danger small">{{ delete_form.password.errors }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" class="btn btn-danger w-100">🗑️ Supprimer mon compte</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

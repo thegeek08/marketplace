@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+  <!-- Image -->
+  <div class="col-12 col-md-6">
+    {% if product.image %}
+      <img src="{{ product.image.url }}" class="img-fluid rounded shadow w-100"
+           style="max-height:420px; object-fit:cover;" alt="{{ product.name }}" loading="lazy">
+    {% else %}
+      <div class="bg-secondary rounded d-flex align-items-center justify-content-center w-100"
+           style="height:280px; border-radius:12px;">
+        <span class="text-white" style="font-size:4rem;">📦</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Infos -->
+  <div class="col-12 col-md-6">
+    {% if product.category %}
+      <small class="text-muted">{{ product.category.icon }} {{ product.category.name }}</small>
+    {% endif %}
+    <h2 class="mt-1 mb-1" style="font-size: clamp(1.2rem, 4vw, 1.75rem);">{{ product.name }}</h2>
+    <p class="text-muted mb-2" style="font-size:.95rem;">{{ product.description }}</p>
+    <p class="fw-bold text-primary mb-1" style="font-size:1.5rem;">{{ product.price }} CFA</p>
+    <p class="text-muted mb-3"><small>🛍️ Vendeur : {{ product.seller.nom }}</small></p>
+
+    <!-- Note -->
+    <div class="mb-3">
+      {% if average %}
+        <span style="font-size:1.3rem;">{% for i in "12345" %}{% if forloop.counter <= average %}⭐{% else %}☆{% endif %}{% endfor %}</span>
+        <small class="text-muted ms-1">{{ average }}/5 — {{ count }} avis</small>
+      {% else %}
+        <small class="text-muted">Aucune note pour le moment</small>
+      {% endif %}
+    </div>
+
+    <!-- Actions client -->
+    {% if user.is_authenticated and user.role == 'client' %}
+      <form method="POST" action="{% url 'add_to_cart' product.pk %}" class="mb-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-dark btn-lg w-100">🛒 Ajouter au panier</button>
+      </form>
+      <a href="{% url 'toggle_favorite' product.pk %}"
+         class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-danger{% endif %} btn-lg w-100 mb-2">
+        {% if is_favorite %}❤️ Retirer des favoris{% else %}🤍 Ajouter aux favoris{% endif %}
+      </a>
+      {% if user != product.seller %}
+        <a href="{% url 'start_conversation' product.pk %}" class="btn btn-outline-dark btn-lg w-100 mb-2">
+          💬 Contacter le vendeur
+        </a>
+      {% endif %}
+    {% elif not user.is_authenticated %}
+      <a href="{% url 'login' %}" class="btn btn-dark btn-lg w-100 mb-2">🔐 Connectez-vous pour acheter</a>
+    {% endif %}
+
+    <!-- Actions vendeur -->
+    {% if user.is_authenticated and user == product.seller or user.is_superuser %}
+      <div class="d-flex gap-2 mt-2">
+        <a href="{% url 'edit_product' product.pk %}" class="btn btn-outline-primary flex-fill">✏️ Modifier</a>
+        <a href="{% url 'delete_product' product.pk %}" class="btn btn-outline-danger flex-fill">🗑️ Supprimer</a>
+      </div>
+    {% endif %}
+
+    <!-- Formulaire de note -->
+    {% if user.is_authenticated and user.role == 'client' %}
+      {% if user_rating %}
+        <div class="alert alert-success mt-3 py-2">✅ Vous avez noté ce produit {{ user_rating.score }}/5</div>
+      {% elif form %}
+        <div class="card mt-3 p-3 border-0 shadow-sm">
+          <h6 class="fw-bold">⭐ Laisser une note</h6>
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-2">
+              {% for radio in form.score %}
+                <div class="form-check form-check-inline">
+                  {{ radio.tag }}
+                  <label class="form-check-label" style="font-size:1.1rem;">{{ radio.choice_label }}</label>
+                </div>
+              {% endfor %}
+            </div>
+            <div class="mb-2">{{ form.commentaire }}</div>
+            <button type="submit" class="btn btn-dark w-100">Envoyer</button>
+          </form>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<!-- Avis -->
+<hr class="mt-4">
+<h5 class="mb-3">💬 Avis clients ({{ count }})</h5>
+{% for rating in ratings %}
+  <div class="card mb-3 p-3 border-0 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center">
+      <strong style="font-size:.9rem;">👤 {{ rating.client.nom }}</strong>
+      <span>{% for i in "12345" %}{% if forloop.counter <= rating.score %}⭐{% else %}☆{% endif %}{% endfor %}</span>
+    </div>
+    {% if rating.commentaire %}<p class="mt-2 mb-1" style="font-size:.9rem;">{{ rating.commentaire }}</p>{% endif %}
+    <small class="text-muted">{{ rating.created_at|date:"d/m/Y" }}</small>
+  </div>
+{% empty %}
+  <p class="text-muted">Aucun avis pour le moment.</p>
+{% endfor %}
+
+<div class="mt-3 mb-2">
+  <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">← Retour aux produits</a>
+</div>
+
+{% endblock %}

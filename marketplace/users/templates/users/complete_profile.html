@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Compléter mon profil{% endblock %}
+
+{% block extra_css %}
+.cp-card {
+  border-radius: 18px;
+  overflow: hidden;
+}
+.cp-header {
+  background: linear-gradient(135deg, #0a7c3e 0%, #0d9e50 100%);
+  padding: 2rem 1.5rem 1.5rem;
+  color: #fff;
+  text-align: center;
+}
+.cp-header h3 { font-weight: 700; margin-bottom: .25rem; }
+.cp-header p  { opacity: .85; font-size: .9rem; margin: 0; }
+
+/* Progress bar */
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 1.25rem;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.step-circle {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .9rem;
+}
+.step.done   .step-circle { background: #fff; color: #0a7c3e; }
+.step.active .step-circle { background: #fff; color: #0a7c3e; box-shadow: 0 0 0 4px rgba(255,255,255,.35); }
+.step.todo   .step-circle { background: rgba(255,255,255,.25); color: #fff; }
+.step-label { font-size: .68rem; opacity: .85; white-space: nowrap; }
+.step-line {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,.3);
+  margin: 0 8px;
+  margin-bottom: 18px;
+}
+.step-line.done { background: #fff; }
+
+/* Avatar preview */
+.avatar-wrapper {
+  position: relative;
+  width: 100px; height: 100px;
+  margin: 0 auto 1rem;
+  cursor: pointer;
+}
+.avatar-preview {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #dee2e6;
+  display: block;
+}
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity .2s;
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 600;
+  text-align: center;
+  flex-direction: column;
+  gap: 2px;
+}
+.avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
+/* Domaine cards */
+.domaine-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (max-width: 576px) {
+  .domaine-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.domaine-card {
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  font-size: .78rem;
+  font-weight: 500;
+  user-select: none;
+}
+.domaine-card:hover         { border-color: #0a7c3e; background: #f0faf4; }
+.domaine-card.selected      { border-color: #0a7c3e; background: #e6f7ee; color: #0a7c3e; font-weight: 700; }
+.domaine-card .domaine-icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-10 col-md-7 col-lg-6">
+    <div class="card cp-card border-0 shadow-lg mb-5">
+
+      <!-- En-tête avec progress -->
+      <div class="cp-header">
+        <div class="progress-steps mb-3">
+          <div class="step done">
+            <div class="step-circle">✓</div>
+            <span class="step-label">Inscription</span>
+          </div>
+          <div class="step-line done"></div>
+          <div class="step active">
+            <div class="step-circle">2</div>
+            <span class="step-label">Mon profil</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step todo">
+            <div class="step-circle">3</div>
+            <span class="step-label">Dashboard</span>
+          </div>
+        </div>
+        <h3>Complétez votre profil</h3>
+        <p>Quelques informations pour personnaliser votre expérience</p>
+      </div>
+
+      <!-- Formulaire -->
+      <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data" id="profileForm">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Photo de profil -->
+          <div class="mb-4 text-center">
+            <label class="form-label fw-semibold d-block mb-2">Photo de profil <span class="text-muted fw-normal">(optionnelle)</span></label>
+            <div class="avatar-wrapper" onclick="document.getElementById('avatarInput').click()">
+              <img id="avatarPreview"
+                   src="https://ui-avatars.com/api/?name={{ request.user.phone }}&background=0a7c3e&color=fff&size=100"
+                   alt="Aperçu" class="avatar-preview">
+              <div class="avatar-overlay">
+                <span style="font-size:1.3rem">📷</span>
+                <span>Changer</span>
+              </div>
+            </div>
+            {{ form.avatar }}
+            {% if form.avatar.errors %}
+              <div class="text-danger small mt-1">{{ form.avatar.errors }}</div>
+            {% endif %}
+            <p class="text-muted small mt-1 mb-0">Cliquez sur la photo pour en choisir une</p>
+          </div>
+
+          <!-- Nom complet -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Nom complet <span class="text-danger">*</span>
+            </label>
+            {{ form.nom }}
+            {% if form.nom.errors %}
+              <div class="text-danger small mt-1">{{ form.nom.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Email -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              Email <span class="text-muted fw-normal">(optionnel, pour récupérer votre compte)</span>
+            </label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Domaine d'activité -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              Domaine d'activité <span class="text-danger">*</span>
+            </label>
+
+            <!-- Champ caché qui reçoit la valeur sélectionnée -->
+            <select name="domaine" id="id_domaine" style="display:none">
+              <option value="">---------</option>
+              {% for val, label in form.fields.domaine.choices %}
+                {% if val %}
+                  <option value="{{ val }}" {% if form.domaine.value == val %}selected{% endif %}>{{ label }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+
+            <div class="domaine-grid" id="domaineGrid">
+              {% for val, label in form.fields.domaine.choices %}
+                {% if val %}
+                <div class="domaine-card {% if form.domaine.value == val %}selected{% endif %}"
+                     data-value="{{ val }}"
+                     onclick="selectDomaine('{{ val }}', this)">
+                  <span class="domaine-icon">
+                    {% if val == 'agriculture' %}🌾
+                    {% elif val == 'commerce' %}🏪
+                    {% elif val == 'electronique' %}📱
+                    {% elif val == 'mode' %}👗
+                    {% elif val == 'beaute' %}💄
+                    {% elif val == 'alimentation' %}🍽️
+                    {% elif val == 'informatique' %}💻
+                    {% else %}🔧{% endif %}
+                  </span>
+                  {{ label }}
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% if form.domaine.errors %}
+              <div class="text-danger small mt-2">{{ form.domaine.errors }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-success btn-lg w-100 fw-semibold">
+            Terminer mon profil →
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Sélection domaine via cards visuelles
+  function selectDomaine(value, card) {
+    document.querySelectorAll('.domaine-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    document.getElementById('id_domaine').value = value;
+  }
+
+  // Prévisualisation avatar
+  document.getElementById('avatarInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('avatarPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Masquer l'input file natif (remplacé par click sur avatar)
+  document.getElementById('avatarInput').style.display = 'none';
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Conversation{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+
+    <!-- En-tête -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <a href="{% url 'conversation_list' %}" class="btn btn-outline-secondary btn-sm">←</a>
+          <div>
+            {% if user.role == 'client' %}
+              <strong>🛍️ {{ conversation.vendeur.nom|default:conversation.vendeur.phone }}</strong>
+            {% else %}
+              <strong>👤 {{ conversation.client.nom|default:conversation.client.phone }}</strong>
+            {% endif %}
+            {% if conversation.product %}
+              <br><small class="text-muted">📦 {{ conversation.product.name }} — {{ conversation.product.price }} CFA</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Actions : Bloquer / Signaler -->
+        <div class="d-flex gap-2">
+          <form method="POST" action="{% url 'block_user' conversation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm {% if is_blocked_by_me %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+                    onclick="return confirm('{% if is_blocked_by_me %}Débloquer cet utilisateur ?{% else %}Bloquer cet utilisateur ?{% endif %}')">
+              {% if is_blocked_by_me %}🔓 Débloquer{% else %}🚫 Bloquer{% endif %}
+            </button>
+          </form>
+
+          <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reportModal">
+            ⚠️ Signaler
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerte si bloqué -->
+    {% if am_i_blocked %}
+    <div class="alert alert-warning">
+      Cet utilisateur vous a bloqué. Vous ne pouvez plus lui envoyer de messages.
+    </div>
+    {% elif is_blocked_by_me %}
+    <div class="alert alert-secondary">
+      Vous avez bloqué cet utilisateur. Débloquez-le pour reprendre la conversation.
+    </div>
+    {% endif %}
+
+    <!-- Messages -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body" id="messages-box" style="height:450px; overflow-y:auto;">
+        {% for message in messages_list %}
+          <div class="d-flex {% if message.sender == user %}justify-content-end{% else %}justify-content-start{% endif %} mb-3">
+            <div class="p-3 rounded-3 {% if message.sender == user %}bg-dark text-white{% else %}bg-light text-dark{% endif %}"
+                 style="max-width:70%;">
+              <p class="mb-1">{{ message.content }}</p>
+              <small class="{% if message.sender == user %}text-white-50{% else %}text-muted{% endif %}">
+                {{ message.created_at|date:"d/m H:i" }}
+                {% if message.sender == user %}
+                  {% if message.is_read %}✓✓{% else %}✓{% endif %}
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center py-5 text-muted">
+            <p>Démarrez la conversation 👋</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Formulaire d'envoi -->
+    {% if not am_i_blocked and not is_blocked_by_me %}
+    <form method="POST">
+      {% csrf_token %}
+      <div class="input-group">
+        <input type="text" name="content" class="form-control form-control-lg"
+               placeholder="Écrire un message..." autocomplete="off" autofocus>
+        <button type="submit" class="btn btn-dark px-4">Envoyer ➤</button>
+      </div>
+    </form>
+    {% else %}
+    <div class="text-center text-muted py-3">
+      <em>Messagerie désactivée</em>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Modal Signalement -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'report_user' conversation.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">⚠️ Signaler {{ other_user.nom|default:other_user.phone }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Motif du signalement</label>
+            <select name="reason" class="form-select" required>
+              {% for value, label in report_reasons %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Détails supplémentaires</label>
+            <textarea name="details" class="form-control" rows="4"
+                      placeholder="Décrivez le problème en détail..."></textarea>
+          </div>
+          <div class="alert alert-info mb-0" style="font-size:.9rem;">
+            Votre signalement sera examiné par l'équipe de modération dans les plus brefs délais.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">Envoyer le signalement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const box = document.getElementById('messages-box');
+  box.scrollTop = box.scrollHeight;
+</script>
+
+{% endblock %}

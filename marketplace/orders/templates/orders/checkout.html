@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Passer la commande{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-3">📦 Passer la commande</h4>
+
+<div class="row g-4">
+  <!-- Résumé EN HAUT sur mobile -->
+  <div class="col-12 d-md-none">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-dark text-white py-2">
+        <h6 class="mb-0">📋 Résumé</h6>
+      </div>
+      <div class="card-body py-2">
+        {% for item in cart.items.all %}
+          <div class="d-flex justify-content-between mb-1" style="font-size:.875rem;">
+            <span class="text-truncate me-2">{{ item.product.name }} ×{{ item.quantity }}</span>
+            <span class="text-nowrap">{{ item.subtotal }} CFA</span>
+          </div>
+        {% endfor %}
+        <hr class="my-2">
+        <div class="d-flex justify-content-between fw-bold">
+          <span>Total</span>
+          <span class="text-primary">{{ cart.total }} CFA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire -->
+  <div class="col-12 col-md-7">
+    <form method="POST">
+      {% csrf_token %}
+
+      <!-- Adresse -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-dark text-white py-2">
+          <h6 class="mb-0">📍 Adresse de livraison</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Adresse complète</label>
+            <textarea name="adresse_livraison" class="form-control"
+                      rows="3" placeholder="Quartier, rue, numéro..." required></textarea>
+          </div>
+          <div class="mb-1">
+            <label class="form-label fw-semibold">Téléphone</label>
+            <input type="tel" name="telephone" class="form-control"
+                   placeholder="7X XXX XX XX" required value="{{ user.phone }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Paiement -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-dark text-white py-2">
+          <h6 class="mb-0">💳 Mode de paiement</h6>
+        </div>
+        <div class="card-body">
+          {% for value, label, icon in payment_options %}
+          {% endfor %}
+          <!-- Cartes de paiement cliquables -->
+          <div class="d-flex flex-column gap-2">
+            <label class="card border p-3 d-flex align-items-center gap-3 cursor-pointer" style="cursor:pointer; border-radius:10px;">
+              <input type="radio" name="payment_method" value="livraison" checked class="form-check-input m-0" style="width:22px;height:22px;">
+              <span class="fs-5">📦</span>
+              <span class="fw-semibold">Paiement à la livraison</span>
+            </label>
+            <label class="card border p-3 d-flex align-items-center gap-3" style="cursor:pointer; border-radius:10px;">
+              <input type="radio" name="payment_method" value="wave" class="form-check-input m-0" style="width:22px;height:22px;">
+              <span class="fs-5">📱</span>
+              <span class="fw-semibold">Wave</span>
+            </label>
+            <label class="card border p-3 d-flex align-items-center gap-3" style="cursor:pointer; border-radius:10px;">
+              <input type="radio" name="payment_method" value="orange_money" class="form-check-input m-0" style="width:22px;height:22px;">
+              <span class="fs-5">📱</span>
+              <span class="fw-semibold">Orange Money</span>
+            </label>
+            <label class="card border p-3 d-flex align-items-center gap-3" style="cursor:pointer; border-radius:10px;">
+              <input type="radio" name="payment_method" value="stripe" class="form-check-input m-0" style="width:22px;height:22px;">
+              <span class="fs-5">💳</span>
+              <span class="fw-semibold">Carte bancaire (Stripe)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-dark btn-lg w-100">
+        ✅ Confirmer la commande
+      </button>
+    </form>
+  </div>
+
+  <!-- Résumé desktop -->
+  <div class="col-md-5 d-none d-md-block">
+    <div class="card shadow sticky-top border-0" style="top:80px;">
+      <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">📋 Résumé de la commande</h6>
+      </div>
+      <div class="card-body">
+        {% for item in cart.items.all %}
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-truncate me-2">{{ item.product.name }} × {{ item.quantity }}</span>
+            <span class="text-nowrap">{{ item.subtotal }} CFA</span>
+          </div>
+        {% endfor %}
+        <hr>
+        <div class="d-flex justify-content-between">
+          <strong>Total</strong>
+          <strong class="text-primary fs-5">{{ cart.total }} CFA</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
