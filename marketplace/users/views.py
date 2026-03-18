@@ -485,8 +485,8 @@ PLANS_INFO = {
     },
 }
 
-NUMERO_WAVE = '+221 XX XXX XX XX'       # ← remplace par ton vrai numéro Wave
-NUMERO_ORANGE = '+221 XX XXX XX XX'     # ← remplace par ton vrai numéro Orange Money
+NUMERO_WAVE = '+221 78 387 93 74'
+NUMERO_ORANGE = '+221 78 387 93 74'
 
 
 @login_required
