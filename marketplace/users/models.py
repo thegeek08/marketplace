@@ -62,6 +62,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="Domaine d'activité"
     )
 
+    PLAN_CHOICES = [
+        ('gratuit', 'Gratuit'),
+        ('standard', 'Standard'),
+        ('pro', 'Pro'),
+    ]
+
+    plan = models.CharField(
+        max_length=20,
+        choices=PLAN_CHOICES,
+        default='gratuit',
+        verbose_name="Plan abonnement"
+    )
+    plan_expires_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Expiration du plan"
+    )
+
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -78,6 +95,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         # Un seul compte par rôle par numéro de téléphone
         unique_together = [('phone', 'role')]
+
+    def plan_actif(self):
+        """Retourne le plan effectif (retombe sur gratuit si expiré)."""
+        if self.plan == 'gratuit':
+            return 'gratuit'
+        if self.plan_expires_at and timezone.now() > self.plan_expires_at:
+            return 'gratuit'
+        return self.plan
+
+    def product_limit(self):
+        """Nombre max de produits autorisés selon le plan."""
+        limits = {'gratuit': 5, 'standard': 50, 'pro': None}
+        return limits.get(self.plan_actif())
 
     def __str__(self):
         return f"{self.nom or self.phone} ({self.role})"

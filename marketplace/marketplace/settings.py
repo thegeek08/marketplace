@@ -328,3 +328,10 @@ LOGGING = {
 
 # ── Monétisation ──────────────────────────────────────────────────────────────
 COMMISSION_RATE = 10  # % prélevé sur chaque commande
+
+# ── Plans abonnement vendeur ────────────────────────────────────────────────
+SUBSCRIPTION_PLANS = {
+    'gratuit':  {'label': 'Gratuit',   'price': 0,     'product_limit': 5,    'badge': 'secondary'},
+    'standard': {'label': 'Standard',  'price': 5000,  'product_limit': 50,   'badge': 'primary'},
+    'pro':      {'label': 'Pro',       'price': 15000, 'product_limit': None, 'badge': 'warning'},
+}

@@ -91,6 +91,18 @@ def product_detail(request, pk):
 def add_product(request):
     if request.user.role != "vendeur":
         return HttpResponseForbidden("Accès refusé — vendeurs uniquement")
+
+    limit = request.user.product_limit()
+    current_count = request.user.products.count()
+    if limit is not None and current_count >= limit:
+        messages.error(
+            request,
+            f"Vous avez atteint la limite de {limit} produits pour votre plan "
+            f"« {request.user.get_plan_display()} ». "
+            "Passez à un plan supérieur pour ajouter plus de produits."
+        )
+        return redirect("dashboard")
+
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
@@ -101,7 +113,11 @@ def add_product(request):
             return redirect("product_list")
     else:
         form = ProductForm()
-    return render(request, "products/add_product.html", {"form": form})
+    return render(request, "products/add_product.html", {
+        "form": form,
+        "product_limit": limit,
+        "product_count": current_count,
+    })
 
 
 @login_required
