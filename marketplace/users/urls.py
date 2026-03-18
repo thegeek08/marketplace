@@ -10,4 +10,5 @@ urlpatterns = [
     path("verify/resend/", views.resend_verification, name="resend_verification"),
     path("complete-profile/", views.complete_profile, name="complete_profile"),
     path("dashboard/", views.dashboard, name="dashboard"),
+    path("upgrade/", views.upgrade_plan, name="upgrade_plan"),
 ]

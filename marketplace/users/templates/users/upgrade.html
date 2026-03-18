@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}Upgrade — Choisir un plan{% endblock %}
+
+{% block extra_css %}
+.plan-card {
+  border-radius: 16px;
+  transition: transform .2s, box-shadow .2s;
+  position: relative;
+}
+.plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.12) !important; }
+.plan-card.current { border: 3px solid #198754 !important; }
+.plan-card.recommended { border: 3px solid #ffc107 !important; }
+.plan-price { font-size: 2rem; font-weight: 800; }
+.plan-price small { font-size: .9rem; font-weight: 400; color: #6c757d; }
+.feature-list li { padding: 4px 0; font-size: .92rem; }
+.badge-current {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+.badge-recommended {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .9rem; flex-shrink: 0;
+}
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h2 class="fw-bold mb-0">💎 Plans d'abonnement</h2>
+  <p class="text-muted">Débloquez plus de fonctionnalités pour développer votre boutique.</p>
+</div>
+
+<!-- Plan actif -->
+<div class="alert alert-success d-flex align-items-center gap-3 mb-4">
+  <span style="font-size:1.8rem">✅</span>
+  <div>
+    <strong>Votre plan actuel : {{ plans|dictsort:"price"|last }}
+    {% if plan_actif == 'gratuit' %}Gratuit{% elif plan_actif == 'standard' %}Standard{% else %}Pro{% endif %}</strong>
+    {% if plan_expires_at %}
+      <br><small class="text-muted">Expire le {{ plan_expires_at|date:"d/m/Y à H\hi" }}</small>
+    {% endif %}
+  </div>
+</div>
+
+{% if demandes_en_cours %}
+<div class="alert alert-warning mb-4">
+  ⏳ <strong>{{ demandes_en_cours.count }} demande(s) en attente</strong> de validation.
+  Nous la traiterons sous 24h.
+</div>
+{% endif %}
+
+<!-- Cartes plans -->
+<div class="row g-4 mb-5">
+
+  <!-- Gratuit -->
+  <div class="col-12 col-md-4">
+    <div class="card plan-card border-0 shadow-sm h-100 p-4 {% if plan_actif == 'gratuit' %}current{% endif %}">
+      {% if plan_actif == 'gratuit' %}
+        <span class="badge bg-success badge-current">Plan actuel</span>
+      {% endif %}
+      <div class="text-center mb-3">
+        <span style="font-size:2.5rem">🆓</span>
+        <h4 class="fw-bold mt-2 mb-0">Gratuit</h4>
+        <div class="plan-price mt-1">0 <small>FCFA/mois</small></div>
+      </div>
+      <ul class="list-unstyled feature-list mb-4">
+        <li>✅ 5 produits maximum</li>
+        <li>✅ Accès à la marketplace</li>
+        <li>✅ Support standard</li>
+        <li class="text-muted">✗ Badge vendeur</li>
+        <li class="text-muted">✗ Statistiques avancées</li>
+      </ul>
+      {% if plan_actif == 'gratuit' %}
+        <button class="btn btn-success w-100" disabled>Plan actuel</button>
+      {% else %}
+        <button class="btn btn-outline-secondary w-100" disabled>Plan de base</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Standard -->
+  <div class="col-12 col-md-4">
+    <div class="card plan-card border-0 shadow-sm h-100 p-4 {% if plan_actif == 'standard' %}current{% endif %}">
+      {% if plan_actif == 'standard' %}
+        <span class="badge bg-success badge-current">Plan actuel</span>
+      {% elif plan_actif == 'gratuit' %}
+        <span class="badge bg-primary badge-recommended">Recommandé</span>
+      {% endif %}
+      <div class="text-center mb-3">
+        <span style="font-size:2.5rem">⭐</span>
+        <h4 class="fw-bold mt-2 mb-0">Standard</h4>
+        <div class="plan-price mt-1">5 000 <small>FCFA/mois</small></div>
+      </div>
+      <ul class="list-unstyled feature-list mb-4">
+        <li>✅ 50 produits maximum</li>
+        <li>✅ Accès à la marketplace</li>
+        <li>✅ Support prioritaire</li>
+        <li>✅ Badge "Standard"</li>
+        <li>✅ Statistiques de ventes</li>
+      </ul>
+      {% if plan_actif == 'standard' %}
+        <button class="btn btn-success w-100" disabled>Plan actuel</button>
+      {% else %}
+        <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#modalPaiement"
+                data-plan="standard" data-prix="5 000" data-label="Standard">
+          {% if plan_actif == 'pro' %}Rétrograder{% else %}Passer en Standard{% endif %}
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pro -->
+  <div class="col-12 col-md-4">
+    <div class="card plan-card border-0 shadow-sm h-100 p-4 {% if plan_actif == 'pro' %}current{% endif %}" style="background: linear-gradient(135deg,#fff9e6,#fff);">
+      {% if plan_actif == 'pro' %}
+        <span class="badge bg-warning text-dark badge-current">Plan actuel</span>
+      {% endif %}
+      <div class="text-center mb-3">
+        <span style="font-size:2.5rem">👑</span>
+        <h4 class="fw-bold mt-2 mb-0">Pro</h4>
+        <div class="plan-price mt-1">15 000 <small>FCFA/mois</small></div>
+      </div>
+      <ul class="list-unstyled feature-list mb-4">
+        <li>✅ Produits <strong>illimités</strong></li>
+        <li>✅ Accès à la marketplace</li>
+        <li>✅ Support dédié</li>
+        <li>✅ Badge "Pro" doré</li>
+        <li>✅ Statistiques avancées</li>
+        <li>✅ Mise en avant des produits</li>
+      </ul>
+      {% if plan_actif == 'pro' %}
+        <button class="btn btn-warning w-100" disabled>Plan actuel</button>
+      {% else %}
+        <button class="btn btn-warning text-dark w-100" data-bs-toggle="modal" data-bs-target="#modalPaiement"
+                data-plan="pro" data-prix="15 000" data-label="Pro">
+          Passer en Pro 👑
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Instructions paiement -->
+<div class="card border-0 shadow-sm mb-5">
+  <div class="card-body p-4">
+    <h5 class="fw-bold mb-3">💸 Comment payer ?</h5>
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <div class="d-flex gap-3 align-items-start p-3 rounded" style="background:#e8f5e9">
+          <span style="font-size:2rem">〰️</span>
+          <div>
+            <strong>Wave</strong><br>
+            <span class="text-muted small">Envoie le montant à :</span><br>
+            <code class="fs-6">{{ numero_wave }}</code>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="d-flex gap-3 align-items-start p-3 rounded" style="background:#fff3e0">
+          <span style="font-size:2rem">🟠</span>
+          <div>
+            <strong>Orange Money</strong><br>
+            <span class="text-muted small">Envoie le montant à :</span><br>
+            <code class="fs-6">{{ numero_orange }}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr class="my-3">
+    <div class="d-flex flex-column gap-2">
+      <div class="d-flex gap-3">
+        <span class="step-num bg-primary text-white">1</span>
+        <span>Effectue le virement Wave ou Orange Money au numéro ci-dessus</span>
+      </div>
+      <div class="d-flex gap-3">
+        <span class="step-num bg-primary text-white">2</span>
+        <span>Note le <strong>numéro de transaction</strong> reçu par SMS</span>
+      </div>
+      <div class="d-flex gap-3">
+        <span class="step-num bg-primary text-white">3</span>
+        <span>Clique sur le bouton du plan choisi et entre le numéro de transaction</span>
+      </div>
+      <div class="d-flex gap-3">
+        <span class="step-num bg-success text-white">4</span>
+        <span>Ton plan est activé sous <strong>24h</strong> après vérification</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Historique demandes -->
+{% if historique %}
+<h5 class="fw-bold mb-3">📋 Historique de mes demandes</h5>
+<div class="card border-0 shadow-sm mb-4">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Plan</th>
+          <th>Paiement</th>
+          <th>Transaction</th>
+          <th>Durée</th>
+          <th>Statut</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in historique %}
+        <tr>
+          <td><strong>{{ d.get_plan_demande_display }}</strong></td>
+          <td>{{ d.get_moyen_paiement_display }}</td>
+          <td><code>{{ d.numero_transaction }}</code></td>
+          <td>{{ d.duree_mois }} mois</td>
+          <td>
+            {% if d.statut == 'en_attente' %}
+              <span class="badge bg-warning text-dark">En attente</span>
+            {% elif d.statut == 'approuvee' %}
+              <span class="badge bg-success">Approuvée</span>
+            {% else %}
+              <span class="badge bg-danger">Refusée</span>
+            {% endif %}
+            {% if d.note_admin %}
+              <br><small class="text-muted">{{ d.note_admin }}</small>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ d.created_at|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal paiement -->
+<div class="modal fade" id="modalPaiement" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">💳 Confirmer le paiement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" name="plan_demande" id="inputPlan">
+
+          <div class="alert alert-info mb-3" id="alertMontant"></div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Moyen de paiement</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="moyen_paiement" id="radioWave" value="wave" checked>
+                <label class="form-check-label" for="radioWave">〰️ Wave</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="moyen_paiement" id="radioOrange" value="orange_money">
+                <label class="form-check-label" for="radioOrange">🟠 Orange Money</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Durée</label>
+            <select name="duree_mois" class="form-select" id="selectDuree">
+              <option value="1">1 mois</option>
+              <option value="3">3 mois (−10%)</option>
+              <option value="6">6 mois (−15%)</option>
+              <option value="12">12 mois (−20%)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Numéro de transaction <span class="text-danger">*</span></label>
+            <input type="text" name="numero_transaction" class="form-control"
+                   placeholder="Ex: TXN-123456789" required>
+            <div class="form-text">Le code reçu par SMS après votre paiement.</div>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Soumettre la demande</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modalEl = document.getElementById('modalPaiement');
+modalEl.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const plan = btn.dataset.plan;
+  const prix = btn.dataset.prix;
+  const label = btn.dataset.label;
+  document.getElementById('inputPlan').value = plan;
+  document.getElementById('alertMontant').innerHTML =
+    `Plan choisi : <strong>${label}</strong> — Montant : <strong>${prix} FCFA/mois</strong>`;
+});
+</script>
+{% endblock %}

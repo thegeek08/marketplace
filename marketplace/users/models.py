@@ -113,6 +113,69 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.nom or self.phone} ({self.role})"
 
 
+class SubscriptionRequest(models.Model):
+    """Demande d'upgrade de plan soumise par un vendeur."""
+
+    STATUS_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('approuvee',  'Approuvée'),
+        ('refusee',    'Refusée'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='subscription_requests',
+        limit_choices_to={'role': 'vendeur'},
+    )
+    plan_demande = models.CharField(
+        max_length=20,
+        choices=User.PLAN_CHOICES,
+        verbose_name="Plan demandé"
+    )
+    moyen_paiement = models.CharField(
+        max_length=20,
+        choices=[('wave', 'Wave'), ('orange_money', 'Orange Money')],
+        verbose_name="Moyen de paiement"
+    )
+    numero_transaction = models.CharField(
+        max_length=100,
+        verbose_name="Numéro de transaction"
+    )
+    duree_mois = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name="Durée (mois)"
+    )
+    statut = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='en_attente',
+        verbose_name="Statut"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    traite_le = models.DateTimeField(null=True, blank=True)
+    note_admin = models.TextField(blank=True, verbose_name="Note admin")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Demande d'abonnement"
+        verbose_name_plural = "Demandes d'abonnement"
+
+    def __str__(self):
+        return f"{self.user.phone} → {self.plan_demande} ({self.statut})"
+
+    def approuver(self):
+        """Active le plan sur le compte vendeur."""
+        self.user.plan = self.plan_demande
+        self.user.plan_expires_at = (
+            timezone.now() + timezone.timedelta(days=30 * self.duree_mois)
+        )
+        self.user.save(update_fields=['plan', 'plan_expires_at'])
+        self.statut = 'approuvee'
+        self.traite_le = timezone.now()
+        self.save(update_fields=['statut', 'traite_le'])
+
+
 class PhoneVerification(models.Model):
     user = models.ForeignKey(
         User,

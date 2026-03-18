@@ -53,9 +53,22 @@
       {% else %}
         <span class="badge bg-warning text-dark ms-1">Non vérifié</span>
       {% endif %}
+      {% if user.role == 'vendeur' %}
+        {% with plan=user.plan_actif %}
+          {% if plan == 'pro' %}<span class="badge bg-warning text-dark ms-1">👑 Pro</span>
+          {% elif plan == 'standard' %}<span class="badge bg-primary ms-1">⭐ Standard</span>
+          {% else %}<span class="badge bg-secondary ms-1">🆓 Gratuit</span>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
     </p>
   </div>
-  <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">⚙️ Mon profil</a>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if user.role == 'vendeur' %}
+      <a href="{% url 'upgrade_plan' %}" class="btn btn-warning btn-sm text-dark fw-semibold">💎 Upgrade</a>
+    {% endif %}
+    <a href="{% url 'profile' %}" class="btn btn-outline-secondary btn-sm">⚙️ Mon profil</a>
+  </div>
 </div>
 
 {% if user.role == 'client' %}

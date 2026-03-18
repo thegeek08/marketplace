@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
@@ -13,7 +13,7 @@ from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 
 from .forms import RegisterForm, LoginForm, VerifyCodeForm, CompleteProfileForm, ProfileForm, ChangePasswordForm, DeleteAccountForm
-from .models import PhoneVerification
+from .models import PhoneVerification, SubscriptionRequest
 from .sms import send_verification_sms, twilio_configured
 from .security import (
     is_locked_ip, is_locked_phone, record_failed_attempt,
@@ -455,3 +455,94 @@ def profile(request):
         'delete_form': delete_form,
     }
     return render(request, "users/profile.html", context)
+
+
+# ──────────────────────────────────────────────────────────
+# PAGE UPGRADE PLAN (vendeurs uniquement)
+# ──────────────────────────────────────────────────────────
+
+PLANS_INFO = {
+    'gratuit': {
+        'label': 'Gratuit',
+        'price': 0,
+        'product_limit': 5,
+        'badge': 'secondary',
+        'features': ['5 produits max', 'Accès à la marketplace', 'Support standard'],
+    },
+    'standard': {
+        'label': 'Standard',
+        'price': 5000,
+        'product_limit': 50,
+        'badge': 'primary',
+        'features': ['50 produits max', 'Badge "Standard"', 'Support prioritaire', 'Statistiques ventes'],
+    },
+    'pro': {
+        'label': 'Pro',
+        'price': 15000,
+        'product_limit': None,
+        'badge': 'warning',
+        'features': ['Produits illimités', 'Badge "Pro" doré', 'Support dédié', 'Statistiques avancées', 'Mise en avant des produits'],
+    },
+}
+
+NUMERO_WAVE = '+221 XX XXX XX XX'       # ← remplace par ton vrai numéro Wave
+NUMERO_ORANGE = '+221 XX XXX XX XX'     # ← remplace par ton vrai numéro Orange Money
+
+
+@login_required
+def upgrade_plan(request):
+    if request.user.role != 'vendeur':
+        messages.error(request, "Cette page est réservée aux vendeurs.")
+        return redirect('dashboard')
+
+    user = request.user
+    plan_actif = user.plan_actif()
+    demandes_en_cours = SubscriptionRequest.objects.filter(
+        user=user, statut='en_attente'
+    )
+
+    if request.method == 'POST':
+        plan_choisi = request.POST.get('plan_demande')
+        moyen = request.POST.get('moyen_paiement')
+        transaction = request.POST.get('numero_transaction', '').strip()
+        duree = request.POST.get('duree_mois', '1')
+
+        # Validations
+        if plan_choisi not in ('standard', 'pro'):
+            messages.error(request, "Plan invalide.")
+            return redirect('upgrade_plan')
+        if moyen not in ('wave', 'orange_money'):
+            messages.error(request, "Moyen de paiement invalide.")
+            return redirect('upgrade_plan')
+        if not transaction:
+            messages.error(request, "Veuillez entrer le numéro de transaction.")
+            return redirect('upgrade_plan')
+        try:
+            duree = max(1, min(12, int(duree)))
+        except ValueError:
+            duree = 1
+
+        SubscriptionRequest.objects.create(
+            user=user,
+            plan_demande=plan_choisi,
+            moyen_paiement=moyen,
+            numero_transaction=transaction,
+            duree_mois=duree,
+        )
+        messages.success(
+            request,
+            "✅ Votre demande a bien été envoyée ! "
+            "Elle sera traitée sous 24h. Vous recevrez une confirmation."
+        )
+        return redirect('upgrade_plan')
+
+    context = {
+        'plans': PLANS_INFO,
+        'plan_actif': plan_actif,
+        'plan_expires_at': user.plan_expires_at,
+        'demandes_en_cours': demandes_en_cours,
+        'historique': SubscriptionRequest.objects.filter(user=user).order_by('-created_at')[:10],
+        'numero_wave': NUMERO_WAVE,
+        'numero_orange': NUMERO_ORANGE,
+    }
+    return render(request, 'users/upgrade.html', context)
