@@ -17,23 +17,32 @@ class Command(BaseCommand):
             ))
             return
 
-        existing = User.objects.filter(phone=phone, is_staff=True).first()
+        # Cherche n'importe quel compte avec ce numéro (is_staff ou non)
+        existing = User.objects.filter(phone=phone).order_by('-is_staff').first()
         if existing:
-            # Met à jour le mot de passe à chaque déploiement
+            # Promouvoir le compte existant en superuser + mettre à jour le mdp
             existing.set_password(password)
             existing.is_active = True
+            existing.is_staff = True
             existing.is_superuser = True
             existing.phone_verified = True
             existing.profile_completed = True
             existing.save()
             self.stdout.write(self.style.SUCCESS(
-                f'Superuser {phone} mis à jour avec succès.'
+                f'Superuser {phone} (role={existing.role}) mis à jour avec succès.'
             ))
             return
 
-        user = User.objects.create_superuser(phone=phone, password=password)
-        user.phone_verified = True
-        user.is_active = True
-        user.profile_completed = True
-        user.save()
-        self.stdout.write(self.style.SUCCESS(f'Superuser {phone} créé avec succès.'))
+        # Aucun compte existant → créer avec role=vendeur
+        from django.db import IntegrityError
+        try:
+            user = User(
+                phone=phone, role='vendeur',
+                is_staff=True, is_superuser=True,
+                is_active=True, phone_verified=True, profile_completed=True,
+            )
+            user.set_password(password)
+            user.save()
+            self.stdout.write(self.style.SUCCESS(f'Superuser {phone} créé avec succès.'))
+        except IntegrityError as e:
+            self.stdout.write(self.style.ERROR(f'Erreur création superuser : {e}'))
