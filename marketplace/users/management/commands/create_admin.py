@@ -17,9 +17,17 @@ class Command(BaseCommand):
             ))
             return
 
-        if User.objects.filter(phone=phone, is_staff=True).exists():
+        existing = User.objects.filter(phone=phone, is_staff=True).first()
+        if existing:
+            # Met à jour le mot de passe à chaque déploiement
+            existing.set_password(password)
+            existing.is_active = True
+            existing.is_superuser = True
+            existing.phone_verified = True
+            existing.profile_completed = True
+            existing.save()
             self.stdout.write(self.style.SUCCESS(
-                f'Superuser {phone} existe déjà — rien à faire.'
+                f'Superuser {phone} mis à jour avec succès.'
             ))
             return
 
