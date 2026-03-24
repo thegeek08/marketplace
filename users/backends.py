@@ -17,6 +17,8 @@ class PhoneRoleBackend:
     """
 
     def authenticate(self, request, phone=None, password=None, role=None, **kwargs):
+        # L'admin Django passe 'username' au lieu de 'phone' → on accepte les deux
+        phone = phone or kwargs.get('username')
         if not phone or not password:
             return None
 
