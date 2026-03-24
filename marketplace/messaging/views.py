@@ -156,7 +156,7 @@ def report_user(request, pk):
 
         # Envoyer un email à l'admin
         reason_label = dict(UserReport.REASON_CHOICES).get(reason, reason)
-        subject = f"[Marketplace] Signalement — {other_user.nom or other_user.phone}"
+        subject = f"[MBoreShop] Signalement — {other_user.nom or other_user.phone}"
         body = (
             f"Un utilisateur a été signalé sur la marketplace.\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"

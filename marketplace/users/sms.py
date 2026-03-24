@@ -33,7 +33,7 @@ def send_verification_sms(phone: str, code: str) -> bool:
         from twilio.rest import Client
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
         client.messages.create(
-            body=f"Marketplace Sénégal — Votre code de vérification : {code}. Valable 10 minutes.",
+            body=f"MBoreShop — Votre code de vérification : {code}. Valable 10 minutes.",
             from_=settings.TWILIO_PHONE_NUMBER,
             to=phone,
         )

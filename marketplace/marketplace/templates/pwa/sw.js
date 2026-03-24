@@ -1,6 +1,6 @@
 {% load static %}
 /* ============================================================
-   Service Worker — Marketplace Sénégal
+   Service Worker — MBoreShop
    Version : {{ app_version }}
    Stratégie :
      - Install  : pré-cache offline page + assets critiques

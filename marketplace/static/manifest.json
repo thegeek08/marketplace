@@ -1,7 +1,7 @@
 {
-  "name": "Marketplace Sénégal",
-  "short_name": "Marketplace",
-  "description": "La marketplace locale du Sénégal — achetez et vendez facilement.",
+  "name": "MBoreShop",
+  "short_name": "MBoreShop",
+  "description": "MBoreShop — La boutique de MBORE DABO, achetez et vendez au Sénégal.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
