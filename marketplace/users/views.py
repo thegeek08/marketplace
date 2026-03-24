@@ -308,6 +308,33 @@ def logout_view(request):
 
 
 # ──────────────────────────────────────────────────────────
+# BASCULE ENTRE COMPTE CLIENT ↔ VENDEUR
+# ──────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def switch_account(request):
+    """Connecte l'utilisateur sur son autre compte (même numéro, rôle différent)."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    other_role = 'vendeur' if request.user.role == 'client' else 'client'
+    try:
+        other = User.objects.get(phone=request.user.phone, role=other_role)
+    except User.DoesNotExist:
+        messages.warning(request, "Vous n'avez pas encore de compte {}.".format(other_role))
+        return redirect('dashboard')
+
+    logout(request)
+    login(request, other, backend='users.backends.PhoneRoleBackend')
+    messages.success(
+        request,
+        "Vous utilisez maintenant votre compte {} !".format(other.get_role_display())
+    )
+    return redirect('dashboard')
+
+
+# ──────────────────────────────────────────────────────────
 # COMPLÉTION DE PROFIL (obligatoire après inscription)
 # ──────────────────────────────────────────────────────────
 

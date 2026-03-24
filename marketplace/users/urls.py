@@ -11,4 +11,5 @@ urlpatterns = [
     path("complete-profile/", views.complete_profile, name="complete_profile"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("upgrade/", views.upgrade_plan, name="upgrade_plan"),
+    path("switch/", views.switch_account, name="switch_account"),
 ]

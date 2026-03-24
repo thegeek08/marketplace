@@ -202,6 +202,14 @@
               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread_notifications_count }}</span>
             {% endif %}
           </a>
+          {% if other_account %}
+          <form method="POST" action="{% url 'switch_account' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-warning ms-1">
+              🔄 {{ other_account.get_role_display }}
+            </button>
+          </form>
+          {% endif %}
           <form method="POST" action="{% url 'logout' %}" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-link nav-link text-white p-0">Déconnexion</button>
