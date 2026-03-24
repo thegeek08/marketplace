@@ -12,8 +12,10 @@ SECRET_KEY = config('SECRET_KEY')  # Obligatoire — aucun fallback pour éviter
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Version de l'application — incrémenter à chaque déploiement pour forcer le rechargement du cache PWA
-APP_VERSION = config('APP_VERSION', default='v2')
+# Version auto basée sur le commit git Render (RENDER_GIT_COMMIT) — change à chaque déploiement
+# ce qui force le rechargement du cache PWA sur tous les appareils
+import os as _os
+APP_VERSION = _os.environ.get('RENDER_GIT_COMMIT', config('APP_VERSION', default='v2'))[:8]
 
 # URL de production Render — utilisée par le management command keep_alive
 RENDER_URL = config('RENDER_URL', default='https://marketplace-q807.onrender.com/ping/')
